@@ -1,0 +1,112 @@
+<template>
+  <ElDialog
+    v-model="visible"
+    :title="dialogTitle"
+    width="600px"
+    align-center
+    @close="handleClose"
+  >
+    <ElForm ref="formRef" :model="formData" :rules="rules" label-width="100px" :disabled="loading">
+      <ElFormItem label="父级API" prop="parentId">
+        <ElTreeSelect
+          v-model="formData.parentId"
+          :data="parentTreeOptions"
+          :render-after-expand="false"
+          placeholder="选择父级API（不选则为顶级）"
+          check-strictly
+          clearable
+          :props="{
+            label: 'name',
+            value: 'id'
+          }"
+        />
+      </ElFormItem>
+
+      <ElFormItem label="API类型" prop="isPermission">
+        <ElRadioGroup v-model="formData.isPermission" @change="handleTypeChange">
+          <ElRadio :label="0">分组（用于组织结构）</ElRadio>
+          <ElRadio :label="1">权限（实际API接口）</ElRadio>
+        </ElRadioGroup>
+      </ElFormItem>
+
+      <ElFormItem label="API名称" prop="name">
+        <ElInput
+          v-model="formData.name"
+          placeholder="请输入API名称"
+          maxlength="50"
+        />
+      </ElFormItem>
+
+      <!-- 权限类型的字段 -->
+      <template v-if="formData.isPermission === 1">
+        <ElFormItem label="API路径" prop="path">
+          <ElInput
+            v-model="formData.path"
+            placeholder="请输入API路径，如 /api/users/:id"
+            maxlength="200"
+          />
+        </ElFormItem>
+
+        <ElFormItem label="请求方法" prop="method">
+          <ElSelect v-model="formData.method" placeholder="请选择请求方法" style="width: 100%">
+            <ElOption label="GET" value="GET" />
+            <ElOption label="POST" value="POST" />
+            <ElOption label="PUT" value="PUT" />
+            <ElOption label="DELETE" value="DELETE" />
+            <ElOption label="PATCH" value="PATCH" />
+            <ElOption label="OPTIONS" value="OPTIONS" />
+            <ElOption label="HEAD" value="HEAD" />
+          </ElSelect>
+        </ElFormItem>
+      </template>
+    </ElForm>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <ElButton @click="handleClose">取消</ElButton>
+        <ElButton type="primary" @click="handleSubmit" :loading="loading">
+          {{ dialogType === 'add' ? '新增' : '更新' }}
+        </ElButton>
+      </div>
+    </template>
+  </ElDialog>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, computed, watch, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
+import {
+  addApiApi,
+  updateApiApi,
+  type ApiSysAPI,
+  type ApiAddRequest,
+  type ApiUpdateRequest,
+  type ApiGroupTreeNode
+} from '@/api/portal/api'
+
+interface Props {
+  modelValue: boolean
+  dialogType: 'add' | 'edit'
+  apiData?: Partial<ApiSysAPI>
+  apiTree: ApiGroupTreeNode[]
+}
+
+interface Emits {
+  (e: 'update:modelValue', value: boolean): void
+  (e: 'success'): void
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  modelValue: false,
+  dialogType: 'add',
+  apiData: undefined,
+  apiTree: () => []
+})
+
+const emit = defineEmits<Emits>()
+
+// 对话框显示控制
+const visible = computed({
+  get: () => props.modelValue,
+  set: (value) => emit('

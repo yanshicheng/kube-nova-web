@@ -1,0 +1,211 @@
+<svg width="700" height="700" viewBox="0 0 700 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <!-- 渐变定义 -->
+        <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#C084FC;stop-opacity:1" />
+        </linearGradient>
+
+        <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#60A5FA;stop-opacity:1" />
+        </linearGradient>
+
+        <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#22D3EE;stop-opacity:1" />
+        </linearGradient>
+
+        <linearGradient id="pinkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#EC4899;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#F472B6;stop-opacity:1" />
+        </linearGradient>
+
+        <!-- 发光效果 -->
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+
+        <filter id="softShadow">
+            <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.2"/>
+        </filter>
+    </defs>
+
+    <!-- 背景装饰光圈 -->
+    <circle cx="350" cy="350" r="280" fill="none" stroke="url(#purpleGrad)" stroke-width="1.5" opacity="0.1">
+        <animate attributeName="r" values="280;290;280" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.1;0.15;0.1" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="350" cy="350" r="220" fill="none" stroke="url(#blueGrad)" stroke-width="1.5" opacity="0.12">
+        <animate attributeName="r" values="220;230;220" dur="5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.12;0.18;0.12" dur="5s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- 中心 Kubernetes 舵轮 - 简化版 -->
+    <g transform="translate(350, 350)" filter="url(#glow)">
+        <!-- 外圈发光 -->
+        <circle cx="0" cy="0" r="85" fill="url(#purpleGrad)" opacity="0.15">
+            <animate attributeName="r" values="85;90;85" dur="3s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.15;0.25;0.15" dur="3s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- 主圆 -->
+        <circle cx="0" cy="0" r="65" fill="url(#purpleGrad)" filter="url(#softShadow)"/>
+        <circle cx="0" cy="0" r="58" fill="white" opacity="0.15"/>
+
+        <!-- 核心 -->
+        <circle cx="0" cy="0" r="28" fill="white"/>
+        <circle cx="0" cy="0" r="20" fill="url(#purpleGrad)"/>
+
+        <!-- 6个舵轮点 -->
+        <g>
+            <circle cx="0" cy="-50" r="12" fill="white">
+                <animate attributeName="opacity" values="1;0.7;1" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="43" cy="-25" r="12" fill="white">
+                <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" begin="0.3s"/>
+            </circle>
+            <circle cx="43" cy="25" r="12" fill="white">
+                <animate attributeName="opacity" values="1;0.7;1" dur="2s" repeatCount="indefinite" begin="0.6s"/>
+            </circle>
+            <circle cx="0" cy="50" r="12" fill="white">
+                <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" begin="0.9s"/>
+            </circle>
+            <circle cx="-43" cy="25" r="12" fill="white">
+                <animate attributeName="opacity" values="1;0.7;1" dur="2s" repeatCount="indefinite" begin="1.2s"/>
+            </circle>
+            <circle cx="-43" cy="-25" r="12" fill="white">
+                <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" begin="1.5s"/>
+            </circle>
+        </g>
+
+        <!-- 连接线 -->
+        <line x1="0" y1="-38" x2="0" y2="-50" stroke="white" stroke-width="3" opacity="0.8"/>
+        <line x1="32" y1="-19" x2="43" y2="-25" stroke="white" stroke-width="3" opacity="0.8"/>
+        <line x1="32" y1="19" x2="43" y2="25" stroke="white" stroke-width="3" opacity="0.8"/>
+        <line x1="0" y1="38" x2="0" y2="50" stroke="white" stroke-width="3" opacity="0.8"/>
+        <line x1="-32" y1="19" x2="-43" y2="25" stroke="white" stroke-width="3" opacity="0.8"/>
+        <line x1="-32" y1="-19" x2="-43" y2="-25" stroke="white" stroke-width="3" opacity="0.8"/>
+    </g>
+
+    <!-- 集群节点 - 简化为彩色圆点 + 图标 -->
+    <!-- 左上 - 蓝色 -->
+    <g transform="translate(150, 150)">
+        <circle cx="0" cy="0" r="55" fill="url(#blueGrad)" filter="url(#softShadow)">
+            <animate attributeName="transform" values="translate(0,0);translate(0,-5);translate(0,0)" dur="3s" repeatCount="indefinite" additive="sum"/>
+        </circle>
+        <circle cx="0" cy="0" r="48" fill="white" opacity="0.2"/>
+        <!-- K8s 图标简化 -->
+        <circle cx="0" cy="0" r="20" fill="white"/>
+        <circle cx="0" cy="0" r="15" fill="url(#blueGrad)"/>
+        <circle cx="0" cy="-18" r="4" fill="white"/>
+        <circle cx="15" cy="-9" r="4" fill="white"/>
+        <circle cx="15" cy="9" r="4" fill="white"/>
+        <circle cx="0" cy="18" r="4" fill="white"/>
+        <circle cx="-15" cy="9" r="4" fill="white"/>
+        <circle cx="-15" cy="-9" r="4" fill="white"/>
+
+        <!-- 流动的粒子效果 -->
+        <g opacity="0.6">
+            <circle r="3" fill="white">
+                <animateMotion path="M 0,-25 Q 100,0 200,175" dur="4s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0;1;0" dur="4s" repeatCount="indefinite"/>
+            </circle>
+        </g>
+    </g>
+
+    <!-- 右上 - 紫色 -->
+    <g transform="translate(550, 150)">
+        <circle cx="0" cy="0" r="55" fill="url(#purpleGrad)" filter="url(#softShadow)">
+            <animate attributeName="transform" values="translate(0,0);translate(0,-5);translate(0,0)" dur="3.5s" repeatCount="indefinite" additive="sum"/>
+        </circle>
+        <circle cx="0" cy="0" r="48" fill="white" opacity="0.2"/>
+        <circle cx="0" cy="0" r="20" fill="white"/>
+        <circle cx="0" cy="0" r="15" fill="url(#purpleGrad)"/>
+        <circle cx="0" cy="-18" r="4" fill="white"/>
+        <circle cx="15" cy="-9" r="4" fill="white"/>
+        <circle cx="15" cy="9" r="4" fill="white"/>
+        <circle cx="0" cy="18" r="4" fill="white"/>
+        <circle cx="-15" cy="9" r="4" fill="white"/>
+        <circle cx="-15" cy="-9" r="4" fill="white"/>
+
+        <g opacity="0.6">
+            <circle r="3" fill="white">
+                <animateMotion path="M 0,-25 Q -100,0 -200,175" dur="4s" repeatCount="indefinite" begin="0.5s"/>
+                <animate attributeName="opacity" values="0;1;0" dur="4s" repeatCount="indefinite" begin="0.5s"/>
+            </circle>
+        </g>
+    </g>
+
+    <!-- 左下 - 青色 -->
+    <g transform="translate(150, 550)">
+        <circle cx="0" cy="0" r="55" fill="url(#cyanGrad)" filter="url(#softShadow)">
+            <animate attributeName="transform" values="translate(0,0);translate(0,-5);translate(0,0)" dur="4s" repeatCount="indefinite" additive="sum"/>
+        </circle>
+        <circle cx="0" cy="0" r="48" fill="white" opacity="0.2"/>
+        <circle cx="0" cy="0" r="20" fill="white"/>
+        <circle cx="0" cy="0" r="15" fill="url(#cyanGrad)"/>
+        <circle cx="0" cy="-18" r="4" fill="white"/>
+        <circle cx="15" cy="-9" r="4" fill="white"/>
+        <circle cx="15" cy="9" r="4" fill="white"/>
+        <circle cx="0" cy="18" r="4" fill="white"/>
+        <circle cx="-15" cy="9" r="4" fill="white"/>
+        <circle cx="-15" cy="-9" r="4" fill="white"/>
+
+        <g opacity="0.6">
+            <circle r="3" fill="white">
+                <animateMotion path="M 0,25 Q 100,0 200,-175" dur="4s" repeatCount="indefinite" begin="1s"/>
+                <animate attributeName="opacity" values="0;1;0" dur="4s" repeatCount="indefinite" begin="1s"/>
+            </circle>
+        </g>
+    </g>
+
+    <!-- 右下 - 粉色 -->
+    <g transform="translate(550, 550)">
+        <circle cx="0" cy="0" r="55" fill="url(#pinkGrad)" filter="url(#softShadow)">
+            <animate attributeName="transform" values="translate(0,0);translate(0,-5);translate(0,0)" dur="3.8s" repeatCount="indefinite" additive="sum"/>
+        </circle>
+        <circle cx="0" cy="0" r="48" fill="white" opacity="0.2"/>
+        <circle cx="0" cy="0" r="20" fill="white"/>
+        <circle cx="0" cy="0" r="15" fill="url(#pinkGrad)"/>
+        <circle cx="0" cy="-18" r="4" fill="white"/>
+        <circle cx="15" cy="-9" r="4" fill="white"/>
+        <circle cx="15" cy="9" r="4" fill="white"/>
+        <circle cx="0" cy="18" r="4" fill="white"/>
+        <circle cx="-15" cy="9" r="4" fill="white"/>
+        <circle cx="-15" cy="-9" r="4" fill="white"/>
+
+        <g opacity="0.6">
+            <circle r="3" fill="white">
+                <animateMotion path="M 0,25 Q -100,0 -200,-175" dur="4s" repeatCount="indefinite" begin="1.5s"/>
+                <animate attributeName="opacity" values="0;1;0" dur="4s" repeatCount="indefinite" begin="1.5s"/>
+            </circle>
+        </g>
+    </g>
+
+    <!-- 连接线 -->
+    <line x1="205" y1="205" x2="295" y2="295" stroke="url(#blueGrad)" stroke-width="2" opacity="0.3" stroke-dasharray="8,4"/>
+    <line x1="495" y1="205" x2="405" y2="295" stroke="url(#purpleGrad)" stroke-width="2" opacity="0.3" stroke-dasharray="8,4"/>
+    <line x1="205" y1="495" x2="295" y2="405" stroke="url(#cyanGrad)" stroke-width="2" opacity="0.3" stroke-dasharray="8,4"/>
+    <line x1="495" y1="495" x2="405" y2="405" stroke="url(#pinkGrad)" stroke-width="2" opacity="0.3" stroke-dasharray="8,4"/>
+
+    <!-- 装饰性光点 -->
+    <g opacity="0.4">
+        <circle cx="350" cy="100" r="3" fill="url(#purpleGrad)">
+            <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="100" cy="350" r="3" fill="url(#blueGrad)">
+            <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="600" cy="350" r="3" fill="url(#cyanGrad)">
+            <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2.2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="350" cy="600" r="3" fill="url(#pinkGrad)">
+            <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2.8s" repeatCount="indefinite"/>
+        </circle>
+    </g>
+</svg>

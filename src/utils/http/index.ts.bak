@@ -1,0 +1,420 @@
+/**
+ * HTTP 请求封装模块（修复版）
+ * 基于 Axios 封装的 HTTP 请求工具，提供统一的请求/响应处理
+ *
+ * ## 修复内容
+ * 1. 修复重复报错问题：在拦截器中统一处理错误，业务层不再重复显示
+ * 2. 修复 message 类型错误：正确定义 BaseResponse 类型
+ * 3. 优化错误处理流程：区分需要自动显示和不需要自动显示的错误
+ *
+ * @module utils/http
+ */
+
+import axios, { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import { ElMessageBox } from 'element-plus'
+import { useUserStore } from '@/store/modules/user'
+import { ApiStatus } from './status'
+import { handleError, HttpError, showError, showSuccess } from './error'
+import { BaseResponse } from '@/types'
+import { router } from '@/router'
+
+/** 请求配置常量 */
+const REQUEST_TIMEOUT = 15000
+const LOGOUT_DELAY = 500
+const MAX_RETRIES = 0
+const RETRY_DELAY = 1000
+const UNAUTHORIZED_DEBOUNCE_TIME = 3000
+
+/** 特殊业务状态码 */
+const BUSINESS_CODE = {
+  SUCCESS: 0, // 业务成功
+  UNAUTHORIZED: 401, // 未授权（业务层）
+  NEED_RESET_PASSWORD: 101112 // 需要重置密码
+} as const
+
+/** 令牌相关错误码定义 */
+const TOKEN_ERROR_CODES = {
+  100091: '令牌不能为空',
+  100092: '无效的令牌',
+  100093: '令牌已过期',
+  100094: '令牌已被使用，请重新登录',
+  100095: '无效的签名算法',
+  100096: '令牌格式错误',
+  100097: '令牌尚未生效',
+  100098: '令牌声明无效',
+  100002: '登录失败，请重新登录'
+} as const
+
+/** 令牌错误防抖状态 */
+let isTokenErrorShown = false
+let tokenErrorTimer: NodeJS.Timeout | null = null
+
+/** 401 防抖状态 */
+let isUnauthorizedErrorShown = false
+let unauthorizedTimer: NodeJS.Timeout | null = null
+
+/** 扩展 AxiosRequestConfig */
+interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
+  /** 是否显示错误消息（默认 true） */
+  showErrorMessage?: boolean
+  /** 是否显示成功消息（默认 false） */
+  showSuccessMessage?: boolean
+}
+
+/**
+ * 扩展的 HttpError，添加标记字段
+ * 用于标识错误是否已经被显示过
+ */
+class ExtendedHttpError extends HttpError {
+  /** 标记错误是否已显示 */
+  isErrorShown: boolean = false
+}
+
+const { VITE_API_URL, VITE_WITH_CREDENTIALS } = import.meta.env
+
+/** Axios 实例 */
+const axiosInstance = axios.create({
+  timeout: REQUEST_TIMEOUT,
+  baseURL: VITE_API_URL,
+  withCredentials: VITE_WITH_CREDENTIALS === 'true',
+  // HTTP 状态码验证：只有 2xx 才认为是传输层成功
+  validateStatus: (status) => status >= 200 && status < 300,
+  transformResponse: [
+    (data, headers) => {
+      const contentType = headers['content-type']
+      if (contentType?.includes('application/json')) {
+        try {
+          return JSON.parse(data)
+        } catch {
+          return data
+        }
+      }
+      return data
+    }
+  ]
+})
+
+/** 请求拦截器 */
+axiosInstance.interceptors.request.use(
+  (request: InternalAxiosRequestConfig) => {
+    const { accessToken } = useUserStore()
+    if (accessToken) request.headers.set('Authorization', `Bearer ${accessToken}`)
+
+    if (request.data && !(request.data instanceof FormData) && !request.headers['Content-Type']) {
+      request.headers.set('Content-Type', 'application/json')
+      request.data = JSON.stringify(request.data)
+    }
+
+    return request
+  },
+  (error) => {
+    showError(createHttpError('请求配置错误', ApiStatus.error))
+    return Promise.reject(error)
+  }
+)
+
+/** 响应拦截器 */
+axiosInstance.interceptors.response.use(
+  (response: AxiosResponse<BaseResponse>) => {
+    // 此时 HTTP 状态码已经是 200-299（由 validateStatus 保证）
+    const { code, message } = response.data
+
+    // 兼容 message 和 msg 字段
+    const errorMessage = message
+
+    // 业务成功（code: 0）
+    if (code === BUSINESS_CODE.SUCCESS) {
+      return response
+    }
+
+    // 业务层未授权（code: 401）
+    if (code === BUSINESS_CODE.UNAUTHORIZED) {
+      handleUnauthorizedError(errorMessage)
+      // 不会执行到这里，handleUnauthorizedError 会 throw error
+    }
+
+    // 令牌相关错误处理（需要弹窗确认后跳转登录）
+    if (isTokenErrorCode(code)) {
+      void handleTokenError(code, errorMessage)
+      // 抛出错误以中断请求链，并标记错误已显示
+      const error = createHttpError(errorMessage || getTokenErrorMessage(code), code)
+      error.isErrorShown = true // 标记错误已显示（弹窗处理）
+      throw error
+    }
+
+    // 特殊业务码：需要重置密码（101112）
+    if (code === BUSINESS_CODE.NEED_RESET_PASSWORD) {
+      void handleResetPasswordError(errorMessage)
+      // 抛出错误以中断请求链，并标记错误已显示
+      const error = createHttpError(errorMessage || '首次登录需要重置密码', code)
+      error.isErrorShown = true // 标记错误已显示（弹窗处理）
+      throw error
+    }
+
+    // 🔧 修复点 1: 其他业务错误统一在这里处理
+    // 创建错误对象
+    const error = createHttpError(errorMessage || '请求失败', code)
+
+    // 根据请求配置决定是否显示错误
+    const config = response.config as ExtendedAxiosRequestConfig
+    const shouldShowError = config.showErrorMessage !== false // 默认显示
+
+    if (shouldShowError) {
+      showError(error, true)
+      error.isErrorShown = true // 标记错误已显示
+    }
+
+    // 抛出错误供业务层捕获
+    return Promise.reject(error)
+  },
+  (error) => {
+    // HTTP 层面的错误（非 2xx 状态码，或网络错误）
+    if (error.response) {
+      // 服务器返回了非 2xx 的状态码
+      const status = error.response.status
+
+      // HTTP 401 未授权
+      if (status === 401) {
+        handleUnauthorizedError('未授权，请重新登录')
+      }
+
+      // 其他 HTTP 错误
+      const httpError = handleError(error)
+
+      // 显示 HTTP 错误
+      showError(httpError, true)
+      ;(httpError as ExtendedHttpError).isErrorShown = true
+
+      return Promise.reject(httpError)
+    }
+
+    // 网络错误或请求超时
+    const networkError = handleError(error)
+
+    // 显示网络错误
+    showError(networkError, true)
+    ;(networkError as ExtendedHttpError).isErrorShown = true
+
+    return Promise.reject(networkError)
+  }
+)
+
+/** 统一创建 ExtendedHttpError */
+function createHttpError(message: string, code: number): ExtendedHttpError {
+  const error = new HttpError(message, code) as ExtendedHttpError
+  error.isErrorShown = false
+  return error
+}
+
+/** 检查是否为令牌错误码 */
+function isTokenErrorCode(code: number): code is keyof typeof TOKEN_ERROR_CODES {
+  return code in TOKEN_ERROR_CODES
+}
+
+/** 获取令牌错误消息 */
+function getTokenErrorMessage(code: number): string {
+  return TOKEN_ERROR_CODES[code as keyof typeof TOKEN_ERROR_CODES] || '登录已失效，请重新登录'
+}
+
+/** 处理需要重置密码的错误（业务码 101112） */
+async function handleResetPasswordError(message?: string): Promise<void> {
+  const errorMessage = message || '首次登录需要重置密码'
+
+  try {
+    await ElMessageBox.confirm(errorMessage + '，是否前往重置密码页面？', '需要重置密码', {
+      confirmButtonText: '前往重置',
+      cancelButtonText: '取消',
+      type: 'warning',
+      center: true
+    })
+
+    // 用户点击确认，跳转到重置密码页面
+    const username = useUserStore().info?.userName || ''
+    await router.push({
+      name: 'ResetPassword',
+      query: username ? { username } : undefined
+    })
+  } catch {
+    // 用户点击取消，跳转到登录页
+    await router.push({ name: 'Login' })
+  }
+}
+
+/** 处理令牌错误（带防抖和确认对话框） */
+async function handleTokenError(code: number, message?: string): Promise<void> {
+  const errorMessage = message || getTokenErrorMessage(code)
+
+  // 防抖处理：避免多个请求同时触发多个弹窗
+  if (!isTokenErrorShown) {
+    isTokenErrorShown = true
+
+    try {
+      await ElMessageBox.confirm(errorMessage, '登录已失效', {
+        confirmButtonText: '确定',
+        showCancelButton: false,
+        closeOnClickModal: false,
+        closeOnPressEscape: false,
+        type: 'warning',
+        center: true
+      })
+    } catch {
+      // 用户关闭对话框，忽略错误
+    } finally {
+      logOut()
+
+      // 延迟重置防抖状态
+      tokenErrorTimer = setTimeout(() => {
+        isTokenErrorShown = false
+        if (tokenErrorTimer) {
+          clearTimeout(tokenErrorTimer)
+          tokenErrorTimer = null
+        }
+      }, UNAUTHORIZED_DEBOUNCE_TIME)
+    }
+  }
+}
+
+/** 处理 401 错误（带防抖） */
+function handleUnauthorizedError(message?: string): never {
+  const error = createHttpError(message || '未授权，请重新登录', BUSINESS_CODE.UNAUTHORIZED)
+
+  if (!isUnauthorizedErrorShown) {
+    isUnauthorizedErrorShown = true
+    logOut()
+
+    unauthorizedTimer = setTimeout(resetUnauthorizedError, UNAUTHORIZED_DEBOUNCE_TIME)
+
+    showError(error, true)
+    error.isErrorShown = true
+  }
+
+  throw error
+}
+
+/** 重置 401 防抖状态 */
+function resetUnauthorizedError(): void {
+  isUnauthorizedErrorShown = false
+  if (unauthorizedTimer) clearTimeout(unauthorizedTimer)
+  unauthorizedTimer = null
+}
+
+/** 退出登录函数 */
+function logOut(): void {
+  setTimeout(() => {
+    useUserStore().logOut()
+  }, LOGOUT_DELAY)
+}
+
+/** 是否需要重试（仅针对 HTTP 层面的错误） */
+function shouldRetry(statusCode: number): boolean {
+  const retryableCodes = [408, 500, 502, 503, 504]
+  return retryableCodes.includes(statusCode)
+}
+
+/** 请求重试逻辑 */
+async function retryRequest<T>(
+  config: ExtendedAxiosRequestConfig,
+  retries = MAX_RETRIES
+): Promise<T> {
+  try {
+    return await request<T>(config)
+  } catch (error) {
+    if (retries > 0 && error instanceof HttpError && shouldRetry(error.code)) {
+      await delay(RETRY_DELAY)
+      return retryRequest<T>(config, retries - 1)
+    }
+    throw error
+  }
+}
+
+/** 延迟函数 */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** 请求函数 */
+async function request<T = any>(config: ExtendedAxiosRequestConfig): Promise<T> {
+  // POST | PUT 参数自动填充
+  if (
+    ['POST', 'PUT'].includes(config.method?.toUpperCase() || '') &&
+    config.params &&
+    !config.data
+  ) {
+    config.data = config.params
+    config.params = undefined
+  }
+
+  try {
+    const res = await axiosInstance.request<BaseResponse<T>>(config)
+
+    // 显示成功消息
+    if (config.showSuccessMessage && res.data.message) {
+      showSuccess(res.data.message || '操作成功')
+    }
+
+    return res.data.data as T
+  } catch (error) {
+    // 🔧 修复点 2: 统一错误处理，不再重复显示
+    // 所有错误都已经在拦截器中处理过了，这里只需要传递错误
+
+    // 如果错误已经被显示过，直接抛出
+    if (error instanceof ExtendedHttpError && error.isErrorShown) {
+      throw error
+    }
+
+    // 如果是其他未处理的错误，也直接抛出
+    throw error
+  }
+}
+
+/** API 方法集合 */
+const api = {
+  /**
+   * GET 请求
+   * @param config 请求配置
+   * @param config.showErrorMessage 是否显示错误消息（默认 true）
+   */
+  get<T>(config: ExtendedAxiosRequestConfig) {
+    return retryRequest<T>({ ...config, method: 'GET' })
+  },
+
+  /**
+   * POST 请求
+   * @param config 请求配置
+   * @param config.showErrorMessage 是否显示错误消息（默认 true）
+   * @param config.showSuccessMessage 是否显示成功消息（默认 false）
+   */
+  post<T>(config: ExtendedAxiosRequestConfig) {
+    return retryRequest<T>({ ...config, method: 'POST' })
+  },
+
+  /**
+   * PUT 请求
+   * @param config 请求配置
+   * @param config.showErrorMessage 是否显示错误消息（默认 true）
+   * @param config.showSuccessMessage 是否显示成功消息（默认 false）
+   */
+  put<T>(config: ExtendedAxiosRequestConfig) {
+    return retryRequest<T>({ ...config, method: 'PUT' })
+  },
+
+  /**
+   * DELETE 请求
+   * @param config 请求配置
+   * @param config.showErrorMessage 是否显示错误消息（默认 true）
+   * @param config.showSuccessMessage 是否显示成功消息（默认 false）
+   */
+  del<T>(config: ExtendedAxiosRequestConfig) {
+    return retryRequest<T>({ ...config, method: 'DELETE' })
+  },
+
+  /**
+   * 自定义请求
+   * @param config 请求配置
+   */
+  request<T>(config: ExtendedAxiosRequestConfig) {
+    return retryRequest<T>(config)
+  }
+}
+
+export default api

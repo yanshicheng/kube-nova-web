@@ -1,0 +1,504 @@
+/**
+ * YAML 和表单数据转换 Hook
+ * 支持 Kubernetes 资源的双向转换
+ */
+
+import * as yaml from 'js-yaml'
+import type {
+  V1StorageClass,
+  V1PersistentVolume,
+  V1ClusterRole,
+  V1ClusterRoleBinding,
+  V1IngressClass,
+  StorageClassFormData,
+  PVFormData,
+  ClusterRoleFormData,
+  ClusterRoleBindingFormData,
+  IngressClassFormData,
+  KeyValuePair
+} from '../types/kubernetes'
+
+// ==================== 工具函数 ====================
+
+/** 将 Record<string, string> 转换为 KeyValuePair[] */
+export function recordToKeyValuePairs(record?: Record<string, string>): KeyValuePair[] {
+  if (!record) return []
+  return Object.entries(record).map(([key, value]) => ({ key, value }))
+}
+
+/** 将 KeyValuePair[] 转换为 Record<string, string> */
+export function keyValuePairsToRecord(pairs: KeyValuePair[]): Record<string, string> | undefined {
+  const filtered = pairs.filter((p) => p.key.trim() !== '')
+  if (filtered.length === 0) return undefined
+  return filtered.reduce(
+    (acc, { key, value }) => {
+      acc[key] = value
+      return acc
+    },
+    {} as Record<string, string>
+  )
+}
+
+/** 解析容量字符串 */
+export function parseCapacity(capacity?: string): { value: string; unit: 'Gi' | 'Mi' | 'Ti' } {
+  if (!capacity) return { value: '1', unit: 'Gi' }
+  const match = capacity.match(/^(\d+)(Gi|Mi|Ti)$/)
+  if (match) {
+    return { value: match[1], unit: match[2] as 'Gi' | 'Mi' | 'Ti' }
+  }
+  return { value: capacity, unit: 'Gi' }
+}
+
+// ==================== StorageClass 转换 ====================
+
+/** StorageClass YAML -> 表单数据 */
+export function storageClassYamlToForm(yamlStr: string): StorageClassFormData {
+  const sc = yaml.load(yamlStr) as V1StorageClass
+
+  // 检查是否为默认存储类
+  const isDefault =
+    sc.metadata?.annotations?.['storageclass.kubernetes.io/is-default-class'] === 'true'
+
+  // 移除默认标记注解，单独处理
+  const annotations = { ...sc.metadata?.annotations }
+  delete annotations['storageclass.kubernetes.io/is-default-class']
+
+  return {
+    name: sc.metadata?.name || '',
+    provisioner: sc.provisioner || '',
+    reclaimPolicy: sc.reclaimPolicy || 'Delete',
+    volumeBindingMode: sc.volumeBindingMode || 'Immediate',
+    allowVolumeExpansion: sc.allowVolumeExpansion || false,
+    isDefault,
+    parameters: recordToKeyValuePairs(sc.parameters),
+    mountOptions: sc.mountOptions || [],
+    labels: recordToKeyValuePairs(sc.metadata?.labels),
+    annotations: recordToKeyValuePairs(
+      Object.keys(annotations).length > 0 ? annotations : undefined
+    )
+  }
+}
+
+/** StorageClass 表单数据 -> YAML */
+export function storageClassFormToYaml(form: StorageClassFormData): string {
+  const annotations = keyValuePairsToRecord(form.annotations) || {}
+
+  // 设置默认存储类标记
+  if (form.isDefault) {
+    annotations['storageclass.kubernetes.io/is-default-class'] = 'true'
+  }
+
+  const sc: V1StorageClass = {
+    apiVersion: 'storage.k8s.io/v1',
+    kind: 'StorageClass',
+    metadata: {
+      name: form.name,
+      labels: keyValuePairsToRecord(form.labels),
+      annotations: Object.keys(annotations).length > 0 ? annotations : undefined
+    },
+    provisioner: form.provisioner,
+    reclaimPolicy: form.reclaimPolicy,
+    volumeBindingMode: form.volumeBindingMode,
+    allowVolumeExpansion: form.allowVolumeExpansion || undefined,
+    parameters: keyValuePairsToRecord(form.parameters),
+    mountOptions: form.mountOptions.length > 0 ? form.mountOptions : undefined
+  }
+
+  // 清理空值
+  if (!sc.metadata?.labels) delete sc.metadata?.labels
+  if (!sc.metadata?.annotations) delete sc.metadata?.annotations
+  if (!sc.parameters) delete sc.parameters
+  if (!sc.mountOptions) delete sc.mountOptions
+  if (!sc.allowVolumeExpansion) delete sc.allowVolumeExpansion
+
+  return yaml.dump(sc, {
+    indent: 2,
+    lineWidth: -1,
+    noRefs: true,
+    sortKeys: false,
+    quotingType: '"',
+    forceQuotes: false
+  })
+}
+
+/** 创建空的 StorageClass 表单数据 */
+export function createEmptyStorageClassForm(): StorageClassFormData {
+  return {
+    name: '',
+    provisioner: '',
+    reclaimPolicy: 'Delete',
+    volumeBindingMode: 'Immediate',
+    allowVolumeExpansion: false,
+    isDefault: false,
+    parameters: [],
+    mountOptions: [],
+    labels: [],
+    annotations: []
+  }
+}
+
+// ==================== PersistentVolume 转换 ====================
+
+/** PV YAML -> 表单数据 */
+export function pvYamlToForm(yamlStr: string): PVFormData {
+  const pv = yaml.load(yamlStr) as V1PersistentVolume
+  const spec = pv.spec || {}
+
+  // 解析容量
+  const capacityStr = spec.capacity?.storage || '1Gi'
+  const { value: capacity, unit: capacityUnit } = parseCapacity(capacityStr)
+
+  // 确定存储源类型
+  let sourceType: PVFormData['sourceType'] = 'nfs'
+  if (spec.hostPath) sourceType = 'hostPath'
+  else if (spec.csi) sourceType = 'csi'
+  else if (spec.local) sourceType = 'local'
+
+  return {
+    name: pv.metadata?.name || '',
+    capacity,
+    capacityUnit,
+    accessModes: spec.accessModes || ['ReadWriteOnce'],
+    reclaimPolicy: spec.persistentVolumeReclaimPolicy || 'Retain',
+    storageClassName: spec.storageClassName || '',
+    volumeMode: spec.volumeMode || 'Filesystem',
+    sourceType,
+    // NFS
+    nfsServer: spec.nfs?.server || '',
+    nfsPath: spec.nfs?.path || '',
+    nfsReadOnly: spec.nfs?.readOnly || false,
+    // HostPath
+    hostPath: spec.hostPath?.path || '',
+    hostPathType: spec.hostPath?.type || 'DirectoryOrCreate',
+    // CSI
+    csiDriver: spec.csi?.driver || '',
+    csiVolumeHandle: spec.csi?.volumeHandle || '',
+    csiFsType: spec.csi?.fsType || 'ext4',
+    csiVolumeAttributes: recordToKeyValuePairs(spec.csi?.volumeAttributes),
+    // Local
+    localPath: spec.local?.path || '',
+    // 通用
+    mountOptions: spec.mountOptions || [],
+    labels: recordToKeyValuePairs(pv.metadata?.labels),
+    annotations: recordToKeyValuePairs(pv.metadata?.annotations)
+  }
+}
+
+/** PV 表单数据 -> YAML */
+export function pvFormToYaml(form: PVFormData): string {
+  const pv: V1PersistentVolume = {
+    apiVersion: 'v1',
+    kind: 'PersistentVolume',
+    metadata: {
+      name: form.name,
+      labels: keyValuePairsToRecord(form.labels),
+      annotations: keyValuePairsToRecord(form.annotations)
+    },
+    spec: {
+      capacity: {
+        storage: `${form.capacity}${form.capacityUnit}`
+      },
+      accessModes: form.accessModes,
+      persistentVolumeReclaimPolicy: form.reclaimPolicy,
+      storageClassName: form.storageClassName || undefined,
+      volumeMode: form.volumeMode,
+      mountOptions: form.mountOptions.length > 0 ? form.mountOptions : undefined
+    }
+  }
+
+  // 添加存储源
+  switch (form.sourceType) {
+    case 'nfs':
+      pv.spec!.nfs = {
+        server: form.nfsServer,
+        path: form.nfsPath,
+        readOnly: form.nfsReadOnly || undefined
+      }
+      break
+    case 'hostPath':
+      pv.spec!.hostPath = {
+        path: form.hostPath,
+        type: form.hostPathType as any
+      }
+      break
+    case 'csi':
+      pv.spec!.csi = {
+        driver: form.csiDriver,
+        volumeHandle: form.csiVolumeHandle,
+        fsType: form.csiFsType || undefined,
+        volumeAttributes: keyValuePairsToRecord(form.csiVolumeAttributes)
+      }
+      break
+    case 'local':
+      pv.spec!.local = {
+        path: form.localPath
+      }
+      break
+  }
+
+  return yaml.dump(pv, {
+    indent: 2,
+    lineWidth: -1,
+    noRefs: true,
+    sortKeys: false
+  })
+}
+
+/** 创建空的 PV 表单数据 */
+export function createEmptyPVForm(): PVFormData {
+  return {
+    name: '',
+    capacity: '1',
+    capacityUnit: 'Gi',
+    accessModes: ['ReadWriteOnce'],
+    reclaimPolicy: 'Retain',
+    storageClassName: '',
+    volumeMode: 'Filesystem',
+    sourceType: 'nfs',
+    nfsServer: '',
+    nfsPath: '/',
+    nfsReadOnly: false,
+    hostPath: '',
+    hostPathType: 'DirectoryOrCreate',
+    csiDriver: '',
+    csiVolumeHandle: '',
+    csiFsType: 'ext4',
+    csiVolumeAttributes: [],
+    localPath: '',
+    mountOptions: [],
+    labels: [],
+    annotations: []
+  }
+}
+
+// ==================== ClusterRole 转换 ====================
+
+/** ClusterRole YAML -> 表单数据 */
+export function clusterRoleYamlToForm(yamlStr: string): ClusterRoleFormData {
+  const cr = yaml.load(yamlStr) as V1ClusterRole
+
+  return {
+    name: cr.metadata?.name || '',
+    rules: (cr.rules || []).map((rule) => ({
+      verbs: rule.verbs || [],
+      apiGroups: rule.apiGroups || [''],
+      resources: rule.resources || [],
+      resourceNames: rule.resourceNames || []
+    })),
+    useAggregation: !!cr.aggregationRule,
+    aggregationSelectors: (cr.aggregationRule?.clusterRoleSelectors || []).map((selector) => ({
+      matchLabels: recordToKeyValuePairs(selector.matchLabels)
+    })),
+    labels: recordToKeyValuePairs(cr.metadata?.labels),
+    annotations: recordToKeyValuePairs(cr.metadata?.annotations)
+  }
+}
+
+/** ClusterRole 表单数据 -> YAML */
+export function clusterRoleFormToYaml(form: ClusterRoleFormData): string {
+  const cr: V1ClusterRole = {
+    apiVersion: 'rbac.authorization.k8s.io/v1',
+    kind: 'ClusterRole',
+    metadata: {
+      name: form.name,
+      labels: keyValuePairsToRecord(form.labels),
+      annotations: keyValuePairsToRecord(form.annotations)
+    }
+  }
+
+  if (form.useAggregation && form.aggregationSelectors.length > 0) {
+    cr.aggregationRule = {
+      clusterRoleSelectors: form.aggregationSelectors.map((selector) => ({
+        matchLabels: keyValuePairsToRecord(selector.matchLabels)
+      }))
+    }
+  } else {
+    cr.rules = form.rules.map((rule) => ({
+      verbs: rule.verbs,
+      apiGroups: rule.apiGroups.length > 0 ? rule.apiGroups : [''],
+      resources: rule.resources.length > 0 ? rule.resources : undefined,
+      resourceNames: rule.resourceNames.length > 0 ? rule.resourceNames : undefined
+    }))
+  }
+
+  return yaml.dump(cr, {
+    indent: 2,
+    lineWidth: -1,
+    noRefs: true,
+    sortKeys: false
+  })
+}
+
+/** 创建空的 ClusterRole 表单数据 */
+export function createEmptyClusterRoleForm(): ClusterRoleFormData {
+  return {
+    name: '',
+    rules: [
+      {
+        verbs: [],
+        apiGroups: [''],
+        resources: [],
+        resourceNames: []
+      }
+    ],
+    useAggregation: false,
+    aggregationSelectors: [],
+    labels: [],
+    annotations: []
+  }
+}
+
+// ==================== ClusterRoleBinding 转换 ====================
+
+/** ClusterRoleBinding YAML -> 表单数据 */
+export function clusterRoleBindingYamlToForm(yamlStr: string): ClusterRoleBindingFormData {
+  const crb = yaml.load(yamlStr) as V1ClusterRoleBinding
+
+  return {
+    name: crb.metadata?.name || '',
+    roleRef: {
+      kind: 'ClusterRole',
+      name: crb.roleRef?.name || ''
+    },
+    subjects: (crb.subjects || []).map((subject) => ({
+      kind: subject.kind as 'User' | 'Group' | 'ServiceAccount',
+      name: subject.name,
+      namespace: subject.namespace
+    })),
+    labels: recordToKeyValuePairs(crb.metadata?.labels),
+    annotations: recordToKeyValuePairs(crb.metadata?.annotations)
+  }
+}
+
+/** ClusterRoleBinding 表单数据 -> YAML */
+export function clusterRoleBindingFormToYaml(form: ClusterRoleBindingFormData): string {
+  const crb: V1ClusterRoleBinding = {
+    apiVersion: 'rbac.authorization.k8s.io/v1',
+    kind: 'ClusterRoleBinding',
+    metadata: {
+      name: form.name,
+      labels: keyValuePairsToRecord(form.labels),
+      annotations: keyValuePairsToRecord(form.annotations)
+    },
+    roleRef: {
+      apiGroup: 'rbac.authorization.k8s.io',
+      kind: 'ClusterRole',
+      name: form.roleRef.name
+    },
+    subjects: form.subjects.map((subject) => ({
+      kind: subject.kind,
+      name: subject.name,
+      namespace: subject.kind === 'ServiceAccount' ? subject.namespace : undefined,
+      apiGroup: subject.kind === 'ServiceAccount' ? '' : 'rbac.authorization.k8s.io'
+    }))
+  }
+
+  return yaml.dump(crb, {
+    indent: 2,
+    lineWidth: -1,
+    noRefs: true,
+    sortKeys: false
+  })
+}
+
+/** 创建空的 ClusterRoleBinding 表单数据 */
+export function createEmptyClusterRoleBindingForm(): ClusterRoleBindingFormData {
+  return {
+    name: '',
+    roleRef: {
+      kind: 'ClusterRole',
+      name: ''
+    },
+    subjects: [],
+    labels: [],
+    annotations: []
+  }
+}
+
+// ==================== IngressClass 转换 ====================
+
+/** IngressClass YAML -> 表单数据 */
+export function ingressClassYamlToForm(yamlStr: string): IngressClassFormData {
+  const ic = yaml.load(yamlStr) as V1IngressClass
+
+  const isDefault =
+    ic.metadata?.annotations?.['ingressclass.kubernetes.io/is-default-class'] === 'true'
+
+  const annotations = { ...ic.metadata?.annotations }
+  delete annotations['ingressclass.kubernetes.io/is-default-class']
+
+  return {
+    name: ic.metadata?.name || '',
+    controller: ic.spec?.controller || '',
+    isDefault,
+    hasParameters: !!ic.spec?.parameters,
+    parameters: {
+      apiGroup: ic.spec?.parameters?.apiGroup || '',
+      kind: ic.spec?.parameters?.kind || '',
+      name: ic.spec?.parameters?.name || '',
+      namespace: ic.spec?.parameters?.namespace || '',
+      scope: ic.spec?.parameters?.scope || 'Cluster'
+    },
+    labels: recordToKeyValuePairs(ic.metadata?.labels),
+    annotations: recordToKeyValuePairs(
+      Object.keys(annotations).length > 0 ? annotations : undefined
+    )
+  }
+}
+
+/** IngressClass 表单数据 -> YAML */
+export function ingressClassFormToYaml(form: IngressClassFormData): string {
+  const annotations = keyValuePairsToRecord(form.annotations) || {}
+
+  if (form.isDefault) {
+    annotations['ingressclass.kubernetes.io/is-default-class'] = 'true'
+  }
+
+  const ic: V1IngressClass = {
+    apiVersion: 'networking.k8s.io/v1',
+    kind: 'IngressClass',
+    metadata: {
+      name: form.name,
+      labels: keyValuePairsToRecord(form.labels),
+      annotations: Object.keys(annotations).length > 0 ? annotations : undefined
+    },
+    spec: {
+      controller: form.controller,
+      parameters: form.hasParameters
+        ? {
+            apiGroup: form.parameters.apiGroup || undefined,
+            kind: form.parameters.kind,
+            name: form.parameters.name,
+            namespace: form.parameters.namespace || undefined,
+            scope: form.parameters.scope
+          }
+        : undefined
+    }
+  }
+
+  return yaml.dump(ic, {
+    indent: 2,
+    lineWidth: -1,
+    noRefs: true,
+    sortKeys: false
+  })
+}
+
+/** 创建空的 IngressClass 表单数据 */
+export function createEmptyIngressClassForm(): IngressClassFormData {
+  return {
+    name: '',
+    controller: 'k8s.io/ingress-nginx',
+    isDefault: false,
+    hasParameters: false,
+    parameters: {
+      apiGroup: '',
+      kind: '',
+      name: '',
+      namespace: '',
+      scope: 'Cluster'
+    },
+    labels: [],
+    annotations: []
+  }
+}

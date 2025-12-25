@@ -1,0 +1,226 @@
+<template>
+  <div class="art-project-selector">
+    <ElSelect
+      v-model="selectedProjectId"
+      filterable
+      clearable
+      placeholder="选择项目"
+      :loading="loading"
+      @change="handleProjectChange"
+      @clear="handleClear"
+      class="project-select"
+      popper-class="art-project-popper"
+    >
+      <ElOption v-for="item in projects" :key="item.id" :label="item.name" :value="item.id">
+        <div class="option-item">
+          <span class="project-badge" :class="item.isSystem === 1 ? 'system' : 'normal'">
+            {{ item.isSystem === 1 ? '系统' : '普通' }}
+          </span>
+          <span class="project-name">{{ item.name }}</span>
+        </div>
+      </ElOption>
+
+      <template #empty>
+        <div class="empty">暂无项目数据</div>
+      </template>
+    </ElSelect>
+  </div>
+</template>
+
+<script setup lang="ts">
+  import { ref, onMounted, watch } from 'vue'
+  import { ElSelect, ElOption, ElMessage } from 'element-plus'
+  import { useProjectStore } from '@/store/modules/project'
+  import { storeToRefs } from 'pinia'
+  import { mittBus } from '@/utils/sys'
+
+  defineOptions({ name: 'ArtProjectSelector' })
+
+  const projectStore = useProjectStore()
+  const { projects, selectedProject, loading } = storeToRefs(projectStore)
+  const selectedProjectId = ref<number | undefined>()
+
+  watch(selectedProject, (newVal) => {
+    if (newVal) {
+      selectedProjectId.value = newVal.id
+    }
+  })
+
+  onMounted(async () => {
+    await projectStore.fetchProjects()
+    if (selectedProject.value) {
+      selectedProjectId.value = selectedProject.value.id
+    }
+  })
+
+  const handleProjectChange = (id: number | undefined) => {
+    if (id) {
+      const project = projects.value.find((p) => p.id === id)
+      if (project) {
+        projectStore.selectProject(project)
+        mittBus.emit('projectChanged', project)
+
+        ElMessage({
+          message: `已切换到「${project.name}」项目`,
+          type: 'success',
+          duration: 2000
+        })
+      }
+    }
+  }
+
+  const handleClear = () => {
+    selectedProjectId.value = undefined
+    projectStore.clearSelection()
+    mittBus.emit('projectChanged', null)
+
+    ElMessage({
+      message: '已清除项目选择',
+      type: 'info',
+      duration: 2000
+    })
+  }
+</script>
+
+<style lang="scss" scoped>
+  .art-project-selector {
+    .project-select {
+      width: 260px;
+
+      :deep(.el-input__wrapper) {
+        height: 40px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        transition: all 0.3s;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.12);
+          border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        &.is-focus {
+          background: white;
+          border-color: #409eff;
+          box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+
+          .el-input__inner {
+            color: #303133;
+          }
+        }
+      }
+
+      :deep(.el-input__inner) {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 14px;
+
+        &::placeholder {
+          color: rgba(255, 255, 255, 0.5);
+        }
+      }
+    }
+  }
+</style>
+
+<style lang="scss">
+  .art-project-popper {
+    //background: #ffffff !important;
+    //border: 1px solid #e4e7ed !important;
+    //border-radius: 6px !important;
+    //box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    //padding: 4px !important;
+
+    .el-select-dropdown__wrap {
+      max-height: 300px !important;
+    }
+
+    .el-select-dropdown__item {
+      height: auto !important;
+      line-height: normal !important;
+      padding: 0 !important;
+      margin: 2px 0 !important;
+
+      &.hover {
+        background-color: transparent !important;
+
+        .option-item {
+          background-color: #f5f7fa;
+        }
+      }
+
+      &.selected {
+        background-color: transparent !important;
+        font-weight: normal !important;
+
+        .option-item {
+          background-color: #ecf5ff;
+
+          .project-name {
+            color: #409eff;
+            font-weight: 500;
+          }
+        }
+      }
+
+      .option-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+
+        .project-badge {
+          /* 椭圆形徽章的基础样式设置 */
+          display: inline-flex; /* 弹性布局，方便文字居中对齐 */
+          align-items: center; /* 垂直居中对齐文字 */
+          justify-content: center; /* 水平居中对齐文字 */
+
+          /* 椭圆形尺寸和间距设置 */
+          height: 22px; /* 椭圆形高度 */
+          padding: 0 10px; /* 左右内边距，让椭圆形有足够宽度容纳文字 */
+          margin-right: 8px; /* 与项目名称之间的间距 */
+
+          /* 椭圆形外观设置 */
+          border-radius: 11px; /* 圆角半径设置为高度的一半，形成椭圆形效果 */
+
+          /* 文字样式设置 */
+          font-size: 12px; /* 文字大小 */
+          font-weight: 500; /* 文字粗细，稍微加粗 */
+          line-height: 1; /* 行高设为1，避免文字上下留白 */
+          white-space: nowrap; /* 防止文字换行 */
+
+          /* 布局相关设置 */
+          flex-shrink: 0; /* 不允许收缩，保持固定大小 */
+
+          /* 系统项目的样式：红色椭圆形背景 */
+          &.system {
+            background-color: #f56565; /* 红色背景，表示系统项目的特殊性 */
+            color: white; /* 白色文字，与红色背景形成对比 */
+          }
+
+          /* 普通项目的样式：绿色椭圆形背景 */
+          &.normal {
+            background-color: #48bb78; /* 绿色背景，表示普通项目的积极性 */
+            color: white; /* 白色文字，与绿色背景形成对比 */
+          }
+        }
+
+        .project-name {
+          font-size: 14px;
+          color: #303133;
+          flex: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+    }
+
+    .empty {
+      padding: 20px;
+      text-align: center;
+      color: #909399;
+      font-size: 14px;
+    }
+  }
+</style>

@@ -1,0 +1,109 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kube-nova-web-ingress
+  namespace: ikubeops
+  labels:
+    app: kube-nova-web
+    tier: kube-nova-web
+  annotations:
+    # SSL/TLS settings
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+
+    # Proxy settings
+    nginx.ingress.kubernetes.io/proxy-body-size: "1024m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+
+    # WebSocket support
+    nginx.ingress.kubernetes.io/websocket-services: "kube-nova-web"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+
+    # CORS settings (if needed)
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "3600"
+
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+
+    # Session affinity for WebSocket
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/affinity-mode: "persistent"
+    nginx.ingress.kubernetes.io/session-cookie-name: "route"
+    nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+    nginx.ingress.kubernetes.io/session-cookie-samesite: "Lax"
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: kube-nova.ngw.ikubeops.local
+      http:
+        paths:
+          # Main application path
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kube-nova-web
+                port:
+                  number: 80
+
+  # TLS configuration (uncomment and configure if needed)
+  # tls:
+  #   - hosts:
+  #       - kube-nova.ngw.ikubeops.local
+  #     secretName: kube-nova-web-tls-secret
+
+---
+# WebSocket Ingress with extended timeouts
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kube-nova-web-websocket-ingress
+  namespace: ikubeops
+  labels:
+    app: kube-nova-web
+    tier: kube-nova-web
+    type: websocket
+  annotations:
+    # WebSocket specific settings
+    nginx.ingress.kubernetes.io/websocket-services: "kube-nova-web"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "604800"  # 7 days
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "604800"  # 7 days
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "604800"  # 7 days
+
+    # Session affinity for WebSocket
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/affinity-mode: "persistent"
+    nginx.ingress.kubernetes.io/session-cookie-name: "ws-route"
+    nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+
+    # Upstream hash key for sticky sessions
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: kube-nova.ngw.ikubeops.local
+      http:
+        paths:
+          # WebSocket dedicated path
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: kube-nova-web
+                port:
+                  number: 80

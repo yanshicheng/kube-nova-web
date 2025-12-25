@@ -1,0 +1,472 @@
+<template>
+  <ElDialog
+    v-model="visible"
+    title="告警详情"
+    width="1000px"
+    :close-on-click-modal="false"
+    :close-on-press-escape="false"
+    destroy-on-close
+  >
+    <div v-loading="loading" class="detail-container">
+      <template v-if="!loading && alertData">
+        <!-- 顶部概览 -->
+        <div class="alert-overview">
+          <div class="overview-left">
+            <h2 class="alert-name">{{ alertData.alertName }}</h2>
+            <div class="alert-badges">
+              <ElTag :type="getSeverityTagType(alertData.severity)" size="large" effect="dark">
+                {{ AlertInstanceSeverityNames[alertData.severity] }}
+              </ElTag>
+              <ElTag :type="getStatusTagType(alertData.status)" size="large">
+                {{ AlertStatusNames[alertData.status] }}
+              </ElTag>
+            </div>
+          </div>
+          <div class="overview-right">
+            <div class="stat-box">
+              <div class="stat-label">持续时长</div>
+              <div class="stat-value">{{ formatDuration(alertData.duration) }}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">重复次数</div>
+              <div class="stat-value">{{ alertData.repeatCount || 0 }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 详细信息 -->
+        <div class="detail-sections">
+          <!-- 基本信息 -->
+          <div class="section">
+            <div class="section-title">基本信息</div>
+            <div class="info-table">
+              <div class="info-row">
+                <span class="info-label">告警实例</span>
+                <span
+                  class="info-value"
+                  @click="copyToClipboard(alertData.instance)"
+                  title="点击复制"
+                >
+                  {{ alertData.instance }}
+                  <ElIcon class="copy-icon"><CopyDocument /></ElIcon>
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">告警指纹</span>
+                <span
+                  class="info-value"
+                  @click="copyToClipboard(alertData.fingerprint)"
+                  title="点击复制"
+                >
+                  {{ alertData.fingerprint }}
+                  <ElIcon class="copy-icon"><CopyDocument /></ElIcon>
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">开始时间</span>
+                <span class="info-value">{{ formatTimestamp(alertData.startsAt) }}</span>
+              </div>
+              <div class="info-row" v-if="alertData.resolvedAt">
+                <span class="info-label">恢复时间</span>
+                <span class="info-value success">{{ formatTimestamp(alertData.resolvedAt) }}</span>
+              </div>
+              <div class="info-row" v-if="alertData.generatorUrl">
+                <span class="info-label">生成器</span>
+                <a :href="alertData.generatorUrl" target="_blank" class="info-value link">
+                  查看来源 <ElIcon><TopRight /></ElIcon>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- 关联资源 -->
+          <div class="section">
+            <div class="section-title">关联资源</div>
+            <div class="resource-tags">
+              <div class="resource-item">
+                <span class="resource-label">集群</span>
+                <ElTag type="primary">{{ alertData.clusterName }}</ElTag>
+              </div>
+              <div class="resource-item">
+                <span class="resource-label">项目</span>
+                <ElTag type="success">{{ alertData.projectName }}</ElTag>
+              </div>
+              <div class="resource-item">
+                <span class="resource-label">工作空间</span>
+                <ElTag type="info">{{ alertData.workspaceName }}</ElTag>
+              </div>
+            </div>
+          </div>
+
+          <!-- 标签 -->
+          <div class="section" v-if="Object.keys(parsedLabels).length > 0">
+            <div class="section-title">标签 (Labels)</div>
+            <div class="labels-list">
+              <div v-for="(value, key) in parsedLabels" :key="key" class="label-item">
+                <span class="label-k">{{ key }}</span>
+                <span class="label-v">{{ value }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 注解 -->
+          <div class="section" v-if="Object.keys(parsedAnnotations).length > 0">
+            <div class="section-title">注解 (Annotations)</div>
+            <div class="annotations-list">
+              <div v-for="(value, key) in parsedAnnotations" :key="key" class="annotation-item">
+                <div class="annotation-k">{{ key }}</div>
+                <div class="annotation-v">{{ value }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <ElEmpty v-else-if="!loading && !alertData" description="未找到告警数据" />
+    </div>
+
+    <template #footer>
+      <ElButton @click="handleClose" size="large">关闭</ElButton>
+      <ElButton type="danger" @click="handleDelete" :loading="deleteLoading" size="large">
+        删除告警
+      </ElButton>
+    </template>
+  </ElDialog>
+</template>
+
+<script setup lang="ts">
+  import { ref, computed, watch } from 'vue'
+  import { ElMessage, ElMessageBox } from 'element-plus'
+  import { useClipboard } from '@vueuse/core'
+  import { CopyDocument, TopRight } from '@element-plus/icons-vue'
+  import {
+    getAlertInstanceByIdApi,
+    deleteAlertInstanceApi,
+    formatTimestamp,
+    formatDuration,
+    formatLabels,
+    formatAnnotations,
+    getSeverityTagType,
+    getStatusTagType,
+    AlertInstanceSeverityNames,
+    AlertStatusNames,
+    type AlertInstance
+  } from '@/api/portal/alert'
+
+  interface Props {
+    modelValue: boolean
+    alertId?: number
+  }
+
+  const props = defineProps<Props>()
+  const emit = defineEmits<{
+    'update:modelValue': [value: boolean]
+    refresh: []
+  }>()
+
+  const { copy } = useClipboard()
+
+  const visible = computed({
+    get: () => props.modelValue,
+    set: (value) => emit('update:modelValue', value)
+  })
+
+  const loading = ref(false)
+  const deleteLoading = ref(false)
+  const alertData = ref<AlertInstance | null>(null)
+
+  const parsedLabels = computed(() => {
+    if (!alertData.value?.labels) return {}
+    return formatLabels(alertData.value.labels)
+  })
+
+  const parsedAnnotations = computed(() => {
+    if (!alertData.value?.annotations) return {}
+    return formatAnnotations(alertData.value.annotations)
+  })
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await copy(text)
+      ElMessage.success('已复制')
+    } catch {
+      ElMessage.error('复制失败')
+    }
+  }
+
+  const loadAlertDetail = async () => {
+    if (!props.alertId) return
+    try {
+      loading.value = true
+      alertData.value = await getAlertInstanceByIdApi(props.alertId)
+    } catch (error) {
+      ElMessage.error('加载失败')
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!alertData.value) return
+    try {
+      await ElMessageBox.confirm(`确定删除告警"${alertData.value.alertName}"吗？`, '删除确认', {
+        type: 'error',
+        autofocus: false
+      })
+      deleteLoading.value = true
+      await deleteAlertInstanceApi(alertData.value.id)
+      ElMessage.success('删除成功')
+      emit('refresh')
+      handleClose()
+    } catch (error: any) {
+      if (error !== 'cancel') {
+        ElMessage.error('删除失败')
+      }
+    } finally {
+      deleteLoading.value = false
+    }
+  }
+
+  const handleClose = () => {
+    visible.value = false
+    alertData.value = null
+  }
+
+  watch(
+    () => props.modelValue,
+    (newVal) => {
+      if (newVal && props.alertId) loadAlertDetail()
+    }
+  )
+</script>
+
+<style lang="scss" scoped>
+  .detail-container {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .alert-overview {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 24px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: 12px;
+    margin-bottom: 24px;
+    border: 1px solid var(--el-border-color-lighter);
+
+    .overview-left {
+      flex: 1;
+
+      .alert-name {
+        margin: 0 0 12px 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .alert-badges {
+        display: flex;
+        gap: 8px;
+      }
+    }
+
+    .overview-right {
+      display: flex;
+      gap: 16px;
+
+      .stat-box {
+        text-align: center;
+        padding: 16px 24px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid var(--el-border-color-lighter);
+        min-width: 120px;
+
+        .stat-label {
+          font-size: 12px;
+          color: var(--el-text-color-secondary);
+          margin-bottom: 8px;
+        }
+
+        .stat-value {
+          font-size: 20px;
+          font-weight: 600;
+          color: var(--el-color-primary);
+        }
+      }
+    }
+  }
+
+  .detail-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    .section {
+      background: white;
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: 8px;
+      padding: 20px;
+
+      .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--el-border-color-lighter);
+      }
+
+      .info-table {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .info-row {
+          display: flex;
+          align-items: center;
+          padding: 12px;
+          background: var(--el-fill-color-light);
+          border-radius: 6px;
+
+          .info-label {
+            width: 120px;
+            font-size: 14px;
+            color: var(--el-text-color-secondary);
+            font-weight: 500;
+          }
+
+          .info-value {
+            flex: 1;
+            font-size: 14px;
+            color: var(--el-text-color-primary);
+            word-break: break-all;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+
+            &:hover .copy-icon {
+              opacity: 1;
+            }
+
+            .copy-icon {
+              opacity: 0.4;
+              transition: opacity 0.2s;
+            }
+
+            &.success {
+              color: var(--el-color-success);
+              font-weight: 500;
+            }
+
+            &.link {
+              color: var(--el-color-primary);
+              text-decoration: none;
+              cursor: pointer;
+
+              &:hover {
+                text-decoration: underline;
+              }
+            }
+          }
+        }
+      }
+
+      .resource-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+
+        .resource-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          background: var(--el-fill-color-light);
+          border-radius: 6px;
+
+          .resource-label {
+            font-size: 14px;
+            color: var(--el-text-color-secondary);
+            font-weight: 500;
+          }
+        }
+      }
+
+      .labels-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 8px;
+
+        .label-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: var(--el-fill-color-light);
+          border-radius: 6px;
+          font-family: monospace;
+          font-size: 13px;
+
+          .label-k {
+            color: var(--el-color-primary);
+            font-weight: 600;
+          }
+
+          .label-v {
+            color: var(--el-text-color-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        }
+      }
+
+      .annotations-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .annotation-item {
+          padding: 12px;
+          background: var(--el-fill-color-light);
+          border-left: 3px solid var(--el-color-primary);
+          border-radius: 4px;
+
+          .annotation-k {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--el-color-primary);
+            margin-bottom: 6px;
+            font-family: monospace;
+          }
+
+          .annotation-v {
+            font-size: 13px;
+            color: var(--el-text-color-primary);
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+          }
+        }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .alert-overview {
+      flex-direction: column;
+      gap: 16px;
+
+      .overview-right {
+        width: 100%;
+
+        .stat-box {
+          flex: 1;
+        }
+      }
+    }
+  }
+</style>
