@@ -19,7 +19,6 @@
     workspace: ProjectWorkspace | null
     resourceType: string
     searchKeyword?: string
-    // ⭐ 新增：从父组件接收应用列表
     applications?: OnecProjectApplication[]
   }
 
@@ -114,7 +113,6 @@
     return tagMap[type] || 'info'
   }
 
-  // ⭐ 优化：只在必要时加载
   const loadApplications = async (force = false) => {
     if (!props.workspace) {
       localApplications.value = []
@@ -122,17 +120,14 @@
       return
     }
 
-    // ⭐ 如果父组件已提供数据，不需要加载（除非强制刷新）
     if (props.applications && props.applications.length > 0 && !force) {
       return
     }
 
-    // ⭐ 防止重复加载同一个 workspace
     if (lastWorkspaceId.value === props.workspace.id && !force) {
       return
     }
 
-    // ⭐ 防止并发请求
     if (isLoading.value) {
       return
     }
@@ -173,7 +168,6 @@
     // 搜索逻辑由 computed 自动处理
   }
 
-  // ⭐ 优化：去掉 immediate，只监听真正的变化
   watch(
     () => props.workspace?.id,
     (newId, oldId) => {
@@ -185,10 +179,8 @@
         }
       }
     }
-    // ❌ 不使用 immediate: true
   )
 
-  // ⭐ 不需要监听 resourceType，由 computed 自动过滤
 
   defineExpose({
     refresh: () => loadApplications(true)
