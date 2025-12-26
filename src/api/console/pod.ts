@@ -920,7 +920,7 @@ export async function completePodFileUploadApi(data: PodFileUploadCompleteReq) {
   return request.post<PodFileUploadCompleteResp>({
     url: `${POD_BASE_PATH}/file/upload/complete`,
     data,
-    timeout: 300000, // 5 分钟超时
+    timeout: 300000 // 5 分钟超时
   })
 }
 
@@ -1028,6 +1028,27 @@ export async function extractPodFileApi(data: PodFileExtractReq) {
 // ========== WebSocket 工具函数 ==========
 
 /**
+ * 获取 WebSocket 基础 URL
+ * 如果配置了 VITE_WEBSOCKET_URL 环境变量，则使用配置的地址
+ * 否则根据当前页面协议和主机自动生成
+ */
+function getWebSocketBaseUrl(): string {
+  const envWsUrl = import.meta.env.VITE_WEBSOCKET_URL
+
+  if (envWsUrl && typeof envWsUrl === 'string' && envWsUrl.trim()) {
+    let baseUrl = envWsUrl.trim()
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.slice(0, -1)
+    }
+    return baseUrl
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const host = window.location.host
+  return `${protocol}//${host}`
+}
+
+/**
  * 创建 WebSocket 连接的通用函数
  * @param url WebSocket 相对路径（会自动添加协议和主机）
  * @param onMessage 消息处理函数
@@ -1040,15 +1061,9 @@ export function createWebSocket(
   onError?: (error: Event) => void,
   onClose?: (event: CloseEvent) => void
 ): WebSocket {
-  // 确定 WebSocket 协议
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const host = window.location.host
-
-  // 确保 URL 以 / 开头
+  const baseUrl = getWebSocketBaseUrl()
   const normalizedUrl = url.startsWith('/') ? url : `/${url}`
-
-  // 构建完整的 WebSocket URL
-  const wsUrl = `${protocol}//${host}${normalizedUrl}`
+  const wsUrl = `${baseUrl}${normalizedUrl}`
 
   console.log('[WebSocket] 连接到:', wsUrl)
 
@@ -1059,7 +1074,6 @@ export function createWebSocket(
       const data = JSON.parse(event.data)
       onMessage(data)
     } catch (e) {
-      // 如果不是 JSON，直接传递原始数据
       onMessage(event.data)
     }
   }
@@ -1112,7 +1126,6 @@ export interface WSMessage<T = any> {
   type: WSMessageType | string
   data: T
 }
-
 
 /**
  * 为 WebSocket URL 添加 token 参数

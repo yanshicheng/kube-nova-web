@@ -284,26 +284,44 @@ export function getRelativeTime(timestamp: number): string {
 // ========== WebSocket 连接相关 ==========
 
 /**
+ * 获取 WebSocket 基础 URL
+ * 如果配置了 VITE_WEBSOCKET_URL 环境变量，则使用配置的地址
+ * 否则根据当前页面协议和主机自动生成
+ */
+function getWebSocketBaseUrl(): string {
+  const envWsUrl = import.meta.env.VITE_WEBSOCKET_URL
+
+  if (envWsUrl && typeof envWsUrl === 'string' && envWsUrl.trim()) {
+    let baseUrl = envWsUrl.trim()
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.slice(0, -1)
+    }
+    return baseUrl
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const host = window.location.host
+  return `${protocol}//${host}`
+}
+
+/**
  * 构建站内消息 WebSocket URL（自动携带 token）
+ * 支持通过 VITE_WEBSOCKET_URL 环境变量配置自定义 WebSocket 地址
  * @returns WebSocket URL
  */
 export function getSiteMessageWSUrl(): string {
   const { accessToken } = useUserStore()
 
-  // 确定 WebSocket 协议
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const host = window.location.host
+  const baseUrl = getWebSocketBaseUrl()
 
-  // 构建 URL 参数
   const params = new URLSearchParams()
   if (accessToken) {
     params.append('token', accessToken)
   }
 
-  // 构建完整的 WebSocket URL
   const path = '/ws/v1/site-messages/connect'
   const query = params.toString()
-  const wsUrl = `${protocol}//${host}${path}${query ? `?${query}` : ''}`
+  const wsUrl = `${baseUrl}${path}${query ? `?${query}` : ''}`
 
   return wsUrl
 }
