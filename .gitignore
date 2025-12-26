@@ -6,7 +6,6 @@ dist-ssr
 .cursorrules
 .idea
 .vscode
-.husky
 # Auto-generated files
 src/types/import/auto-imports.d.ts
 src/types/import/components.d.ts
