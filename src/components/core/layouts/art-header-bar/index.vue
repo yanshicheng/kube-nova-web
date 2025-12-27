@@ -1,6 +1,6 @@
 <template>
   <div
-    class="w-full bg-[var(--default-bg-color)]"
+    class="header-bar-container w-full bg-[var(--default-bg-color)]"
     :class="[
       tabStyle === 'tab-card' || tabStyle === 'tab-google' ? 'mb-5 max-sm:mb-3 !bg-box' : ''
     ]"
@@ -14,7 +14,7 @@
       ]"
     >
       <div class="flex-c flex-1 min-w-0 leading-15" style="display: flex">
-        <!-- 系统信息  -->
+        <!-- 系统信息 -->
         <div class="flex-c c-p" @click="toHome" v-if="isTopMenu">
           <ArtLogo class="pl-4.5" />
           <p v-if="width >= 1400" class="my-0 mx-2 ml-2 text-lg">{{ AppConfig.systemInfo.name }}</p>
@@ -91,13 +91,6 @@
           @click="openSetting"
         />
 
-        <!-- 主题切换按钮 -->
-        <ArtIconButton
-          v-if="shouldShowThemeToggle"
-          @click="themeAnimation"
-          :icon="isDark ? 'ri:sun-fill' : 'ri:moon-line'"
-        />
-
         <!-- 用户头像、菜单 -->
         <ArtUserMenu />
       </div>
@@ -106,12 +99,14 @@
     <!-- 标签页 -->
     <ArtWorkTab />
 
-    <!-- 通知 -->
-    <ArtNotification
-      v-model:value="showNotice"
-      ref="noticeRef"
-      @unread-count-change="handleUnreadCountChange"
-    />
+    <!-- 通知面板 - 使用 Teleport 传送到 body，避免被其他元素遮挡 -->
+    <Teleport to="body">
+      <ArtNotification
+        v-model:value="showNotice"
+        ref="noticeRef"
+        @unread-count-change="handleUnreadCountChange"
+      />
+    </Teleport>
   </div>
 </template>
 
@@ -125,11 +120,9 @@
   import { useUserStore } from '@/store/modules/user'
   import { useMenuStore } from '@/store/modules/menu'
   import AppConfig from '@/config'
-  import { languageOptions } from '@/locales'
   import ArtProjectSelector from '@/components/core/project-selector/index.vue'
 
   import { mittBus } from '@/utils/sys'
-  import { themeAnimation } from '@/utils/ui/animation'
   import { useCommon } from '@/hooks/core/useCommon'
   import { useHeaderBar } from '@/hooks/core/useHeaderBar'
   import ArtUserMenu from './widget/ArtUserMenu.vue'
@@ -137,8 +130,6 @@
 
   defineOptions({ name: 'ArtHeaderBar' })
 
-  // 检测操作系统类型
-  const isWindows = navigator.userAgent.includes('Windows')
 
   const router = useRouter()
   const { locale } = useI18n()
@@ -152,15 +143,11 @@
   const {
     shouldShowMenuButton,
     shouldShowRefreshButton,
-    shouldShowFastEnter,
     shouldShowBreadcrumb,
     shouldShowGlobalSearch,
     shouldShowFullscreen,
     shouldShowNotification,
-    shouldShowChat,
-    shouldShowLanguage,
     shouldShowSettings,
-    shouldShowThemeToggle,
     fastEnterMinWidth: headerBarFastEnterMinWidth
   } = useHeaderBar()
 
@@ -186,7 +173,6 @@
   onMounted(() => {
     initLanguage()
     document.addEventListener('click', bodyCloseNotice)
-    // ✅ 修改：只获取未读数量，不显示弹窗（弹窗由 WebSocket 新消息触发）
     initUnreadCount()
   })
 
@@ -194,14 +180,11 @@
     document.removeEventListener('click', bodyCloseNotice)
   })
 
-  /**
-   * ✅ 简化：只初始化未读数量，不显示弹窗
-   */
+  // 初始化未读数量
   const initUnreadCount = async () => {
     try {
       const res = await getUnreadCountApi()
       unreadCount.value = res.count || 0
-      // 如果有未读消息，显示红点
       if (unreadCount.value > 0) {
         hasUnreadAlert.value = true
       }
@@ -210,33 +193,24 @@
     }
   }
 
-  /**
-   * 处理未读数量变化
-   */
+  // 处理未读数量变化
   const handleUnreadCountChange = (count: number) => {
     const oldCount = unreadCount.value
     unreadCount.value = count
 
-    // 如果未读数量从有变无，隐藏红点
     if (oldCount > 0 && count === 0) {
       hasUnreadAlert.value = false
-    }
-    // 如果有新消息，显示红点
-    else if (count > 0) {
+    } else if (count > 0) {
       hasUnreadAlert.value = true
     }
   }
 
-  /**
-   * 切换全屏状态
-   */
+  // 切换全屏状态
   const toggleFullScreen = (): void => {
     toggleFullscreen()
   }
 
-  /**
-   * 切换菜单显示/隐藏状态
-   */
+  // 切换菜单显示/隐藏状态
   const visibleMenu = (): void => {
     settingStore.setMenuOpen(!menuOpen.value)
   }
@@ -244,34 +218,24 @@
   const { homePath } = useCommon()
   const { refresh } = useCommon()
 
-  /**
-   * 跳转到首页
-   */
+  // 跳转到首页
   const toHome = (): void => {
     router.push(homePath.value)
   }
 
-  /**
-   * 刷新页面
-   * @param {number} time - 延迟时间，默认为0毫秒
-   */
+  // 刷新页面
   const reload = (time: number = 0): void => {
     setTimeout(() => {
       refresh()
     }, time)
   }
 
-  /**
-   * 初始化语言设置
-   */
+  // 初始化语言设置
   const initLanguage = (): void => {
     locale.value = language.value
   }
 
-  /**
-   * 切换系统语言
-   * @param {LanguageEnum} lang - 目标语言类型
-   */
+  // 切换系统语言
   const changeLanguage = (lang: LanguageEnum): void => {
     if (locale.value === lang) return
     locale.value = lang
@@ -279,70 +243,58 @@
     reload(50)
   }
 
-  /**
-   * 打开设置面板
-   */
+  // 打开设置面板
   const openSetting = (): void => {
     mittBus.emit('openSetting')
-
-    // 隐藏设置引导提示
     if (showSettingGuide.value) {
       settingStore.hideSettingGuide()
     }
   }
 
-  /**
-   * 打开全局搜索对话框
-   */
+  // 打开全局搜索对话框
   const openSearchDialog = (): void => {
     mittBus.emit('openSearchDialog')
   }
 
-  /**
-   * 点击页面其他区域关闭通知面板
-   * @param {Event} e - 点击事件对象
-   */
+  // 点击页面其他区域关闭通知面板
   const bodyCloseNotice = (e: any): void => {
     if (!showNotice.value) return
 
     const target = e.target as HTMLElement
-
-    // 检查是否点击了通知按钮或通知面板内部
     const isNoticeButton = target.closest('.notice-button')
-    const isNoticePanel = target.closest('.art-notification-panel')
+    const isNoticePanel = target.closest('.notification-panel')
 
     if (!isNoticeButton && !isNoticePanel) {
       showNotice.value = false
     }
   }
 
-  /**
-   * 切换通知面板显示状态
-   */
+  // 切换通知面板显示状态
   const visibleNotice = (): void => {
     showNotice.value = !showNotice.value
-
-    // 如果打开通知面板，隐藏红点
     if (showNotice.value && hasUnreadAlert.value) {
       hasUnreadAlert.value = false
     }
   }
 
-  /**
-   * 打开聊天窗口
-   */
+  // 打开聊天窗口
   const openChat = (): void => {
     mittBus.emit('openChat')
   }
 </script>
 
 <style lang="scss" scoped>
-  /* Custom animations */
+  /* 顶部栏容器 */
+  .header-bar-container {
+    position: relative;
+    z-index: 100;
+  }
+
+  /* 按钮动画 */
   @keyframes rotate180 {
     0% {
       transform: rotate(0);
     }
-
     100% {
       transform: rotate(180deg);
     }
@@ -352,19 +304,15 @@
     0% {
       transform: rotate(0);
     }
-
     25% {
       transform: rotate(-5deg);
     }
-
     50% {
       transform: rotate(5deg);
     }
-
     75% {
       transform: rotate(-5deg);
     }
-
     100% {
       transform: rotate(0);
     }
@@ -374,11 +322,9 @@
     0% {
       transform: scale(1);
     }
-
     50% {
       transform: scale(1.1);
     }
-
     100% {
       transform: scale(1);
     }
@@ -388,11 +334,9 @@
     0% {
       transform: scale(1);
     }
-
     50% {
       transform: scale(0.9);
     }
-
     100% {
       transform: scale(1);
     }
@@ -402,11 +346,9 @@
     0% {
       transform: translateY(0);
     }
-
     50% {
       transform: translateY(-3px);
     }
-
     100% {
       transform: translateY(0);
     }
@@ -417,19 +359,17 @@
       opacity: 0.4;
       transform: scale(0.9);
     }
-
     50% {
       opacity: 1;
       transform: scale(1.1);
     }
-
     100% {
       opacity: 0.4;
       transform: scale(0.9);
     }
   }
 
-  /* Hover animation classes */
+  /* 按钮悬停动画 */
   .refresh-btn:hover :deep(.art-svg-icon) {
     animation: rotate180 0.5s;
   }
@@ -458,12 +398,12 @@
     animation: shake 0.5s ease-in-out;
   }
 
-  /* Breathing animation for alert dot */
+  /* 未读消息呼吸动画 */
   .breathing-dot {
     animation: breathing 1.5s ease-in-out infinite;
   }
 
-  /* iPad breakpoint adjustments */
+  /* 响应式适配 */
   @media screen and (width <= 768px) {
     .logo2 {
       display: block !important;

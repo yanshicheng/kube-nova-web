@@ -81,17 +81,20 @@
       </div>
     </div>
 
+    <!-- 微信邀请弹窗 -->
     <Teleport to="body" v-if="isDemoEnabled">
-      <Transition name="wechat-dialog-fade">
-        <div v-if="showWechatDialog" class="wechat-dialog-overlay" @click="handleCloseWechatDialog">
-          <Transition name="wechat-dialog-scale">
-            <div v-if="showWechatDialog" class="wechat-dialog-container" @click.stop>
-              <div class="wechat-dialog-header">
-                <div class="wechat-wave"></div>
-                <div class="wechat-wave wechat-wave-2"></div>
+      <Transition name="dialog-fade">
+        <div v-if="showWechatDialog" class="dialog-overlay" @click="handleCloseWechatDialog">
+          <Transition name="dialog-scale">
+            <div v-if="showWechatDialog" class="dialog-container" @click.stop>
+              <!-- 顶部装饰 -->
+              <div class="dialog-header wechat-header">
+                <div class="dialog-wave"></div>
+                <div class="dialog-wave dialog-wave-2"></div>
               </div>
 
-              <div class="wechat-dialog-icon">
+              <!-- 图标 -->
+              <div class="dialog-icon wechat-icon">
                 <svg
                   width="44"
                   height="44"
@@ -107,15 +110,17 @@
                 </svg>
               </div>
 
-              <div class="wechat-dialog-header-text">
-                <h2 class="wechat-dialog-title">一起学习，共同成长</h2>
-                <p class="wechat-dialog-subtitle">加入 Kube Nova 开发者社区</p>
+              <!-- 标题 -->
+              <div class="dialog-header-text">
+                <h2 class="dialog-title">一起学习，共同成长</h2>
+                <p class="dialog-subtitle">加入 Kube Nova 开发者社区</p>
               </div>
 
-              <div class="wechat-dialog-content">
-                <div class="wechat-intro">
-                  <div class="wechat-intro-item">
-                    <div class="wechat-intro-icon">
+              <!-- 内容 -->
+              <div class="dialog-content">
+                <div class="intro-list">
+                  <div class="intro-item">
+                    <div class="intro-icon wechat-intro-icon">
                       <svg
                         width="14"
                         height="14"
@@ -129,8 +134,8 @@
                     </div>
                     <span>与志同道合的开发者交流技术</span>
                   </div>
-                  <div class="wechat-intro-item">
-                    <div class="wechat-intro-icon">
+                  <div class="intro-item">
+                    <div class="intro-icon wechat-intro-icon">
                       <svg
                         width="14"
                         height="14"
@@ -144,8 +149,8 @@
                     </div>
                     <span>参与开源项目，提升实战能力</span>
                   </div>
-                  <div class="wechat-intro-item">
-                    <div class="wechat-intro-icon">
+                  <div class="intro-item">
+                    <div class="intro-icon wechat-intro-icon">
                       <svg
                         width="14"
                         height="14"
@@ -161,17 +166,18 @@
                   </div>
                 </div>
 
-                <div class="wechat-qrcode-section">
-                  <div class="wechat-qrcode-wrapper">
-                    <div class="wechat-qrcode-border">
+                <!-- 二维码 -->
+                <div class="qrcode-section">
+                  <div class="qrcode-wrapper">
+                    <div class="qrcode-border wechat-qrcode-border">
                       <img
                         :src="wechatQRCodeUrl"
-                        alt="WeChat QR Code"
-                        class="wechat-qrcode-img"
+                        alt="微信二维码"
+                        class="qrcode-img"
                         @error="handleQRCodeError"
                       />
                     </div>
-                    <p class="wechat-qrcode-tip">
+                    <p class="qrcode-tip">
                       <svg
                         width="14"
                         height="14"
@@ -190,7 +196,8 @@
                   </div>
                 </div>
 
-                <div class="wechat-notice">
+                <!-- 提示 -->
+                <div class="notice wechat-notice">
                   <svg
                     width="14"
                     height="14"
@@ -207,7 +214,8 @@
                 </div>
               </div>
 
-              <button class="wechat-dialog-button-single" @click="handleCloseWechatDialog">
+              <!-- 按钮 -->
+              <button class="dialog-button wechat-button" @click="handleCloseWechatDialog">
                 <span>知道了</span>
                 <svg
                   width="16"
@@ -226,44 +234,34 @@
       </Transition>
     </Teleport>
 
+    <!-- 演示环境弹窗 -->
     <Teleport to="body" v-if="isDemoEnabled">
-      <Transition name="demo-dialog-fade">
-        <div v-if="showDemoDialog" class="demo-dialog-overlay" @click="handleCloseDemoDialog">
-          <Transition name="demo-dialog-scale">
-            <div v-if="showDemoDialog" class="demo-dialog-container" @click.stop>
-              <div class="demo-dialog-header-decoration"></div>
-
-              <div class="demo-dialog-icon">
-                <img
-                  src="/src/assets/images/common/logo.webp"
-                  alt="Kube Nova Logo"
-                  class="demo-logo-img"
-                />
+      <Transition name="dialog-fade">
+        <div v-if="showDemoDialog" class="dialog-overlay" @click="handleCloseDemoDialog">
+          <Transition name="dialog-scale">
+            <div v-if="showDemoDialog" class="dialog-container" @click.stop>
+              <!-- 顶部装饰 -->
+              <div class="dialog-header demo-header">
+                <div class="dialog-wave"></div>
+                <div class="dialog-wave dialog-wave-2"></div>
               </div>
 
-              <h2 class="demo-dialog-title">Kube Nova 平台 演示环境</h2>
+              <!-- 图标 -->
+              <div class="dialog-icon demo-icon">
+                <img src="/src/assets/images/common/logo.webp" alt="Logo" class="logo-img" />
+              </div>
 
-              <div class="demo-dialog-content">
-                <div class="demo-info-item">
-                  <div class="demo-info-label">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                    <span>作者</span>
-                  </div>
-                  <div class="demo-info-value">Yan Shicheng</div>
-                </div>
+              <!-- 标题 -->
+              <div class="dialog-header-text">
+                <h2 class="dialog-title">Kube Nova 平台 演示环境</h2>
+                <p class="dialog-subtitle">体验完整功能，探索云原生管理</p>
+              </div>
 
-                <div class="demo-account-box">
-                  <div class="demo-info-label">
+              <!-- 内容 -->
+              <div class="dialog-content">
+                <!-- 账号信息 -->
+                <div class="account-box">
+                  <div class="account-label">
                     <svg
                       width="16"
                       height="16"
@@ -277,14 +275,14 @@
                     </svg>
                     <span>演示账号</span>
                   </div>
-                  <div class="demo-account-content">
-                    <div class="demo-account-item">
-                      <span class="demo-account-key">账号</span>
-                      <span class="demo-account-value">super_admin</span>
+                  <div class="account-content">
+                    <div class="account-item">
+                      <span class="account-key">账号</span>
+                      <span class="account-value">super_admin</span>
                       <button
-                        class="demo-copy-btn"
+                        class="copy-btn"
                         @click="copyToClipboard('super_admin', '账号')"
-                        title="复制账号"
+                        title="复制"
                       >
                         <svg
                           width="14"
@@ -299,13 +297,13 @@
                         </svg>
                       </button>
                     </div>
-                    <div class="demo-account-item">
-                      <span class="demo-account-key">密码</span>
-                      <span class="demo-account-value">Admin@123456</span>
+                    <div class="account-item">
+                      <span class="account-key">密码</span>
+                      <span class="account-value">Admin@123456</span>
                       <button
-                        class="demo-copy-btn"
+                        class="copy-btn"
                         @click="copyToClipboard('Admin@123456', '密码')"
-                        title="复制密码"
+                        title="复制"
                       >
                         <svg
                           width="14"
@@ -323,31 +321,30 @@
                   </div>
                 </div>
 
-                <div class="demo-links-grid">
+                <!-- 链接 -->
+                <div class="links-list">
                   <a
                     href="https://www.cnblogs.com/yanshicheng/articles/19363328"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="demo-link-item"
+                    class="link-item"
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14 2 14 8 20 8"></polyline>
-                      <line x1="16" y1="13" x2="8" y2="13"></line>
-                      <line x1="16" y1="17" x2="8" y2="17"></line>
-                      <polyline points="10 9 9 9 8 9"></polyline>
-                    </svg>
-                    <div class="demo-link-content">
-                      <div class="demo-link-label">部署文档</div>
-                      <div class="demo-link-status">点击查看</div>
+                    <div class="link-icon demo-link-icon">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                      </svg>
                     </div>
+                    <span>部署文档</span>
                     <svg
                       width="14"
                       height="14"
@@ -355,28 +352,26 @@
                       fill="none"
                       stroke="currentColor"
                       stroke-width="2"
-                      class="demo-link-arrow"
+                      class="link-arrow"
                     >
                       <line x1="7" y1="17" x2="17" y2="7"></line>
                       <polyline points="7 7 17 7 17 17"></polyline>
                     </svg>
                   </a>
-
                   <a
                     href="https://github.com/yanshicheng/kube-nova"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="demo-link-item"
+                    class="link-item"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path
-                        d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
-                      />
-                    </svg>
-                    <div class="demo-link-content">
-                      <div class="demo-link-label">GitHub</div>
-                      <div class="demo-link-status">点击访问</div>
+                    <div class="link-icon demo-link-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                          d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+                        />
+                      </svg>
                     </div>
+                    <span>GitHub</span>
                     <svg
                       width="14"
                       height="14"
@@ -384,28 +379,26 @@
                       fill="none"
                       stroke="currentColor"
                       stroke-width="2"
-                      class="demo-link-arrow"
+                      class="link-arrow"
                     >
                       <line x1="7" y1="17" x2="17" y2="7"></line>
                       <polyline points="7 7 17 7 17 17"></polyline>
                     </svg>
                   </a>
-
                   <a
                     href="https://gitee.com/ikubeops/kube-nova"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="demo-link-item"
+                    class="link-item"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path
-                        d="M11.984 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.016 0zm6.09 5.333c.328 0 .593.266.592.593v1.482a.594.594 0 0 1-.593.592H9.777c-.982 0-1.778.796-1.778 1.778v5.63c0 .327.266.592.593.592h5.63c.982 0 1.778-.796 1.778-1.778v-.296a.593.593 0 0 0-.592-.593h-4.037a.594.594 0 0 1-.592-.593v-1.482a.593.593 0 0 1 .593-.592h6.815c.327 0 .593.265.593.592v3.408a4 4 0 0 1-4 4H5.926a.593.593 0 0 1-.593-.593V9.778a4.444 4.444 0 0 1 4.445-4.444h8.296Z"
-                      />
-                    </svg>
-                    <div class="demo-link-content">
-                      <div class="demo-link-label">Gitee</div>
-                      <div class="demo-link-status">点击访问</div>
+                    <div class="link-icon demo-link-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                          d="M11.984 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.016 0zm6.09 5.333c.328 0 .593.266.592.593v1.482a.594.594 0 0 1-.593.592H9.777c-.982 0-1.778.796-1.778 1.778v5.63c0 .327.266.592.593.592h5.63c.982 0 1.778-.796 1.778-1.778v-.296a.593.593 0 0 0-.592-.593h-4.037a.594.594 0 0 1-.592-.593v-1.482a.593.593 0 0 1 .593-.592h6.815c.327 0 .593.265.593.592v3.408a4 4 0 0 1-4 4H5.926a.593.593 0 0 1-.593-.593V9.778a4.444 4.444 0 0 1 4.445-4.444h8.296Z"
+                        />
+                      </svg>
                     </div>
+                    <span>Gitee</span>
                     <svg
                       width="14"
                       height="14"
@@ -413,7 +406,7 @@
                       fill="none"
                       stroke="currentColor"
                       stroke-width="2"
-                      class="demo-link-arrow"
+                      class="link-arrow"
                     >
                       <line x1="7" y1="17" x2="17" y2="7"></line>
                       <polyline points="7 7 17 7 17 17"></polyline>
@@ -422,7 +415,8 @@
                 </div>
               </div>
 
-              <button class="demo-dialog-button" @click="handleCloseDemoDialog">
+              <!-- 按钮 -->
+              <button class="dialog-button demo-button" @click="handleCloseDemoDialog">
                 <span>知道了</span>
                 <svg
                   width="16"
@@ -441,6 +435,7 @@
       </Transition>
     </Teleport>
 
+    <!-- 悬浮按钮 -->
     <Teleport to="body" v-if="isDemoEnabled">
       <ElTooltip
         v-if="!showDemoDialog && !showWechatDialog"
@@ -448,10 +443,10 @@
         placement="left"
         :show-after="300"
       >
-        <Transition name="demo-fab-fade">
+        <Transition name="fab-fade">
           <button
             v-if="!showDemoDialog && !showWechatDialog"
-            class="demo-fab"
+            class="fab-button"
             @click="handleOpenWechatDialog"
           >
             <svg
@@ -473,8 +468,9 @@
       </ElTooltip>
     </Teleport>
 
+    <!-- 复制成功提示 -->
     <Teleport to="body">
-      <Transition name="copy-toast-fade">
+      <Transition name="toast-fade">
         <div v-if="showCopyToast" class="copy-toast">
           <svg
             width="18"
@@ -531,72 +527,48 @@
 
   const loading = ref(false)
 
-  const WECHAT_DIALOG_KEY = 'kube_nova_wechat_dialog_shown'
+  // 弹窗状态
   const showWechatDialog = ref(false)
+  const showDemoDialog = ref(false)
   const wechatQRCodeUrl = 'https://images.ikubeops.com/common/kube-nova-wechat.png'
 
-  const handleQRCodeError = (event: Event) => {
-    console.warn('[Login] 二维码加载失败:', wechatQRCodeUrl)
+  // 是否启用演示模式
+  const isDemoEnabled = computed(() => {
+    return import.meta.env.VITE_ENABLE_DEMO === 'true'
+  })
+
+  // 二维码加载失败
+  const handleQRCodeError = () => {
+    console.warn('二维码加载失败')
   }
 
+  // 打开微信弹窗
   const handleOpenWechatDialog = () => {
     showWechatDialog.value = true
   }
 
+  // 关闭微信弹窗，然后打开演示弹窗
   const handleCloseWechatDialog = () => {
     showWechatDialog.value = false
-    try {
-      localStorage.setItem(WECHAT_DIALOG_KEY, 'true')
-    } catch (error) {
-      console.warn('[Login] localStorage 写入失败:', error)
-    }
-
     setTimeout(() => {
       showDemoDialog.value = true
     }, 300)
   }
 
-  const DEMO_DIALOG_KEY = 'kube_nova_demo_dialog_shown'
-  const showDemoDialog = ref(false)
-
-  const isDemoEnabled = computed(() => {
-    return import.meta.env.VITE_ENABLE_DEMO === 'true'
-  })
-
-  const checkShowDialogs = () => {
-    if (!isDemoEnabled.value) return
-
-    try {
-      const hasShownWechat = localStorage.getItem(WECHAT_DIALOG_KEY)
-      const hasShownDemo = localStorage.getItem(DEMO_DIALOG_KEY)
-
-      setTimeout(() => {
-        if (!hasShownWechat && !hasShownDemo) {
-          showWechatDialog.value = true
-        } else if (hasShownWechat && !hasShownDemo) {
-          showDemoDialog.value = true
-        } else if (!hasShownWechat && hasShownDemo) {
-          showWechatDialog.value = true
-        }
-      }, 500)
-    } catch (error) {
-      console.warn('[Login] localStorage 访问失败:', error)
-    }
-  }
-
-  const handleOpenDemoDialog = () => {
-    showDemoDialog.value = true
-  }
-
+  // 关闭演示弹窗
   const handleCloseDemoDialog = () => {
     showDemoDialog.value = false
-    try {
-      localStorage.setItem(DEMO_DIALOG_KEY, 'true')
-    } catch (error) {
-      console.warn('[Login] localStorage 写入失败:', error)
-    }
   }
 
+  // 初始化弹窗显示
+  const initDialogs = () => {
+    if (!isDemoEnabled.value) return
+    setTimeout(() => {
+      showWechatDialog.value = true
+    }, 500)
+  }
+
+  // 复制相关
   const showCopyToast = ref(false)
   const copyToastMessage = ref('')
   let copyToastTimer: NodeJS.Timeout | null = null
@@ -605,10 +577,8 @@
     if (copyToastTimer) {
       clearTimeout(copyToastTimer)
     }
-
     copyToastMessage.value = message
     showCopyToast.value = true
-
     copyToastTimer = setTimeout(() => {
       showCopyToast.value = false
     }, 2000)
@@ -618,31 +588,22 @@
     try {
       await navigator.clipboard.writeText(text)
       showCopyMessage(`${label}复制成功`)
-    } catch (error) {
-      try {
-        const textarea = document.createElement('textarea')
-        textarea.value = text
-        textarea.style.position = 'fixed'
-        textarea.style.left = '-9999px'
-        textarea.style.top = '-9999px'
-        document.body.appendChild(textarea)
-        textarea.select()
-        const successful = document.execCommand('copy')
-        document.body.removeChild(textarea)
-
-        if (successful) {
-          showCopyMessage(`${label}复制成功`)
-        } else {
-          showCopyMessage(`${label}复制失败，请手动复制`)
-        }
-      } catch (err) {
-        showCopyMessage(`${label}复制失败，请手动复制`)
-      }
+    } catch {
+      // 降级方案
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(textarea)
+      showCopyMessage(ok ? `${label}复制成功` : `${label}复制失败`)
     }
   }
 
   onMounted(() => {
-    checkShowDialogs()
+    initDialogs()
   })
 
   onUnmounted(() => {
@@ -651,6 +612,7 @@
     }
   })
 
+  // 登录提交
   const handleSubmit = async () => {
     if (!formRef.value) return
 
@@ -667,28 +629,21 @@
 
       const { username, password } = formData
 
-      const loginResponse = await loginApi({
-        username,
-        password
-      })
+      const loginResponse = await loginApi({ username, password })
 
       if (!loginResponse || !loginResponse.token) {
-        throw new Error('登录失败 - 未收到有效的 token')
+        throw new Error('登录失败')
       }
 
       const { userId, username: userName, nickName, uuid, roles, token } = loginResponse
-
-      if (!roles || roles.length === 0) {
-        console.warn('[Login] 后端未返回角色信息，请检查接口')
-      }
 
       userStore.setToken(token.accessToken, token.refreshToken)
       userStore.setLoginStatus(true)
 
       userStore.setUserInfo({
         userId,
-        userName: userName,
-        nickName: nickName,
+        userName,
+        nickName,
         uuid,
         roles: roles || []
       })
@@ -697,7 +652,6 @@
 
       try {
         const userInfo = await getUserInfoApi()
-
         userStore.setUserInfo({
           userId: userInfo.id,
           userName: userInfo.username,
@@ -707,12 +661,11 @@
           phone: userInfo.phone,
           status: userInfo.status
         })
-      } catch (error) {
-        console.warn('[Login] 获取用户详细信息失败，使用登录返回的基本信息:', error)
+      } catch {
+        console.warn('获取用户详细信息失败')
       }
 
       userStore.checkAndClearWorktabs()
-
       showLoginSuccessNotice()
 
       const redirect = route.query.redirect as string
@@ -721,12 +674,7 @@
       if (error instanceof HttpError && error.code === 101112) {
         return
       }
-
-      if (error instanceof HttpError) {
-        console.error('[Login] 登录失败:', error.message, 'Code:', error.code)
-      } else {
-        console.error('[Login] 未知错误:', error)
-      }
+      console.error('登录失败:', error)
     } finally {
       loading.value = false
       resetDragVerify()
@@ -734,7 +682,7 @@
   }
 
   const resetDragVerify = () => {
-    if (dragVerify.value && typeof dragVerify.value.reset === 'function') {
+    if (dragVerify.value?.reset) {
       dragVerify.value.reset()
     }
   }
@@ -755,7 +703,8 @@
 <style scoped>
   @import './style.css';
 
-  .wechat-dialog-overlay {
+  /* 弹窗遮罩 */
+  .dialog-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -770,7 +719,8 @@
     padding: 20px;
   }
 
-  .wechat-dialog-container {
+  /* 弹窗容器 */
+  .dialog-container {
     position: relative;
     background: var(--el-bg-color);
     border-radius: 20px;
@@ -782,15 +732,24 @@
     overflow: hidden;
   }
 
-  .wechat-dialog-header {
+  /* 弹窗头部 */
+  .dialog-header {
     position: relative;
     height: 90px;
     flex-shrink: 0;
-    background: linear-gradient(135deg, #07c160 0%, #00d976 100%);
     overflow: hidden;
   }
 
-  .wechat-wave {
+  .wechat-header {
+    background: linear-gradient(135deg, #07c160 0%, #00d976 100%);
+  }
+
+  .demo-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  /* 波浪动画 */
+  .dialog-wave {
     position: absolute;
     bottom: -10px;
     left: 0;
@@ -801,7 +760,7 @@
     animation: wave 10s linear infinite;
   }
 
-  .wechat-wave-2 {
+  .dialog-wave-2 {
     bottom: -15px;
     opacity: 0.5;
     animation-delay: -5s;
@@ -820,57 +779,72 @@
     }
   }
 
-  .wechat-dialog-icon {
+  /* 图标 */
+  .dialog-icon {
     position: relative;
     width: 68px;
     height: 68px;
     margin: -34px auto 0;
     flex-shrink: 0;
-    background: linear-gradient(135deg, #07c160 0%, #00d976 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 24px rgba(7, 193, 96, 0.4);
     z-index: 1;
   }
 
-  .wechat-dialog-icon svg {
+  .wechat-icon {
+    background: linear-gradient(135deg, #07c160 0%, #00d976 100%);
+    box-shadow: 0 8px 24px rgba(7, 193, 96, 0.4);
     color: white;
   }
 
-  .wechat-dialog-header-text {
+  .demo-icon {
+    background: var(--el-bg-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .logo-img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+
+  /* 标题区 */
+  .dialog-header-text {
     padding: 18px 24px 14px;
     text-align: center;
     flex-shrink: 0;
   }
 
-  .wechat-dialog-title {
+  .dialog-title {
     font-size: 20px;
     font-weight: 700;
     color: var(--el-text-color-primary);
     margin: 0 0 6px;
   }
 
-  .wechat-dialog-subtitle {
+  .dialog-subtitle {
     font-size: 13px;
     color: var(--el-text-color-secondary);
     margin: 0;
   }
 
-  .wechat-dialog-content {
+  /* 内容区 */
+  .dialog-content {
     flex: 1;
     padding: 0 24px 18px;
   }
 
-  .wechat-intro {
+  /* 介绍列表 */
+  .intro-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
     margin-bottom: 18px;
   }
 
-  .wechat-intro-item {
+  .intro-item {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -880,16 +854,15 @@
     transition: all 0.3s ease;
   }
 
-  .wechat-intro-item:hover {
+  .intro-item:hover {
     background: var(--el-fill-color);
     transform: translateX(3px);
   }
 
-  .wechat-intro-icon {
+  .intro-icon {
     flex-shrink: 0;
     width: 26px;
     height: 26px;
-    background: linear-gradient(135deg, #07c160 0%, #00d976 100%);
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -897,35 +870,43 @@
     color: white;
   }
 
-  .wechat-intro-item span {
+  .wechat-intro-icon {
+    background: linear-gradient(135deg, #07c160 0%, #00d976 100%);
+  }
+
+  .intro-item span {
     flex: 1;
     font-size: 13px;
     color: var(--el-text-color-primary);
     font-weight: 500;
   }
 
-  .wechat-qrcode-section {
+  /* 二维码 */
+  .qrcode-section {
     display: flex;
     justify-content: center;
     margin-bottom: 16px;
   }
 
-  .wechat-qrcode-wrapper {
+  .qrcode-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
   }
 
-  .wechat-qrcode-border {
+  .qrcode-border {
     position: relative;
     padding: 10px;
-    background: linear-gradient(135deg, #07c160 0%, #00d976 100%);
     border-radius: 14px;
     box-shadow: 0 6px 20px rgba(7, 193, 96, 0.3);
   }
 
-  .wechat-qrcode-img {
+  .wechat-qrcode-border {
+    background: linear-gradient(135deg, #07c160 0%, #00d976 100%);
+  }
+
+  .qrcode-img {
     display: block;
     width: 170px;
     height: 170px;
@@ -933,7 +914,7 @@
     background: white;
   }
 
-  .wechat-qrcode-tip {
+  .qrcode-tip {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -943,20 +924,23 @@
     margin: 0;
   }
 
-  .wechat-qrcode-tip svg {
+  .qrcode-tip svg {
     flex-shrink: 0;
     color: #07c160;
   }
 
-  .wechat-notice {
+  /* 提示 */
+  .notice {
     display: flex;
     align-items: flex-start;
     gap: 8px;
     padding: 10px 12px;
-    background: linear-gradient(135deg, rgba(7, 193, 96, 0.1) 0%, rgba(0, 217, 118, 0.1) 100%);
     border-radius: 10px;
+  }
+
+  .wechat-notice {
+    background: linear-gradient(135deg, rgba(7, 193, 96, 0.1) 0%, rgba(0, 217, 118, 0.1) 100%);
     border-left: 3px solid #07c160;
-    margin-bottom: 0;
   }
 
   .wechat-notice svg {
@@ -965,222 +949,38 @@
     color: #07c160;
   }
 
-  .wechat-notice span {
+  .notice span {
     flex: 1;
     font-size: 12px;
     color: var(--el-text-color-secondary);
     line-height: 1.5;
   }
 
-  .wechat-dialog-button-single {
-    width: 100%;
-    margin: 0;
-    padding: 16px 20px;
-    flex-shrink: 0;
-    background: linear-gradient(135deg, #07c160 0%, #00d976 100%);
-    color: white;
-    border: none;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-  }
-
-  .wechat-dialog-button-single:hover {
-    background: linear-gradient(135deg, #06b056 0%, #00c96c 100%);
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
-  }
-
-  .wechat-dialog-button-single:active {
-    transform: scale(0.98);
-  }
-
-  .wechat-dialog-fade-enter-active,
-  .wechat-dialog-fade-leave-active {
-    transition: opacity 0.3s ease;
-  }
-
-  .wechat-dialog-fade-enter-from,
-  .wechat-dialog-fade-leave-to {
-    opacity: 0;
-  }
-
-  .wechat-dialog-scale-enter-active {
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  .wechat-dialog-scale-leave-active {
-    transition: all 0.3s ease;
-  }
-
-  .wechat-dialog-scale-enter-from {
-    opacity: 0;
-    transform: scale(0.85) translateY(30px);
-  }
-
-  .wechat-dialog-scale-leave-to {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  .demo-dialog-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    padding: 20px;
-  }
-
-  .demo-dialog-container {
-    position: relative;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 20px;
-    padding: 3px;
-    max-width: 480px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
-  }
-
-  .demo-dialog-container::before {
-    content: '';
-    position: absolute;
-    inset: 3px;
-    background: var(--el-bg-color);
-    border-radius: 18px;
-    z-index: 0;
-  }
-
-  .demo-dialog-header-decoration {
-    position: relative;
-    height: 100px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 18px 18px 0 0;
-    overflow: hidden;
-    z-index: 1;
-    flex-shrink: 0;
-  }
-
-  .demo-dialog-header-decoration::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-    animation: rotate 20s linear infinite;
-  }
-
-  @keyframes rotate {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .demo-dialog-icon {
-    position: relative;
-    width: 72px;
-    height: 72px;
-    margin: -36px auto 0;
-    background: var(--el-bg-color);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    z-index: 1;
-    flex-shrink: 0;
-  }
-
-  .demo-logo-img {
-    width: 52px;
-    height: 52px;
-    object-fit: contain;
-  }
-
-  .demo-dialog-title {
-    position: relative;
-    text-align: center;
-    font-size: 20px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin: 20px 0 0;
-    padding-bottom: 20px;
-    z-index: 1;
-    flex-shrink: 0;
-  }
-
-  .demo-dialog-content {
-    position: relative;
-    padding: 0 24px 18px;
-    z-index: 1;
-    flex: 1;
-  }
-
-  .demo-info-item {
-    margin-bottom: 18px;
-  }
-
-  .demo-info-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--el-text-color-secondary);
-    margin-bottom: 10px;
-  }
-
-  .demo-info-label svg {
-    flex-shrink: 0;
-  }
-
-  .demo-info-value {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    padding-left: 24px;
-  }
-
-  .demo-account-box {
+  /* 账号信息 */
+  .account-box {
     background: var(--el-fill-color-light);
     border-radius: 12px;
     padding: 14px;
     margin-bottom: 18px;
   }
 
-  .demo-account-box .demo-info-label {
+  .account-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
     margin-bottom: 12px;
   }
 
-  .demo-account-content {
+  .account-content {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
 
-  .demo-account-item {
+  .account-item {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1190,14 +990,14 @@
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
   }
 
-  .demo-account-key {
+  .account-key {
     font-size: 13px;
     color: var(--el-text-color-secondary);
     font-weight: 500;
     min-width: 40px;
   }
 
-  .demo-account-value {
+  .account-value {
     flex: 1;
     font-size: 14px;
     color: var(--el-color-primary);
@@ -1205,7 +1005,7 @@
     letter-spacing: 0.3px;
   }
 
-  .demo-copy-btn {
+  .copy-btn {
     padding: 6px;
     background: transparent;
     border: none;
@@ -1218,92 +1018,79 @@
     justify-content: center;
   }
 
-  .demo-copy-btn:hover {
+  .copy-btn:hover {
     background: var(--el-fill-color);
     color: var(--el-color-primary);
   }
 
-  .demo-copy-btn:active {
+  .copy-btn:active {
     transform: scale(0.95);
   }
 
-  .demo-links-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
-
-  .demo-link-item {
+  /* 链接列表 */
+  .links-list {
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 8px;
-    padding: 14px 10px;
+  }
+
+  .link-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
     background: var(--el-fill-color-light);
-    border-radius: 12px;
+    border-radius: 10px;
     transition: all 0.3s ease;
     text-decoration: none;
     color: inherit;
-    position: relative;
     cursor: pointer;
   }
 
-  .demo-link-item:hover {
+  .link-item:hover {
     background: var(--el-fill-color);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateX(3px);
   }
 
-  .demo-link-item:active {
-    transform: translateY(0);
-  }
-
-  .demo-link-item > svg:first-child {
+  .link-icon {
     flex-shrink: 0;
-    color: var(--el-text-color-secondary);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
   }
 
-  .demo-link-arrow {
-    position: absolute;
-    top: 8px;
-    right: 8px;
+  .demo-link-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .link-item span {
+    flex: 1;
+    font-size: 14px;
+    color: var(--el-text-color-primary);
+    font-weight: 500;
+  }
+
+  .link-arrow {
+    color: var(--el-text-color-secondary);
     opacity: 0;
     transition: all 0.3s ease;
   }
 
-  .demo-link-item:hover .demo-link-arrow {
+  .link-item:hover .link-arrow {
     opacity: 1;
     color: var(--el-color-primary);
   }
 
-  .demo-link-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    width: 100%;
-  }
-
-  .demo-link-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    text-align: center;
-  }
-
-  .demo-link-status {
-    font-size: 11px;
-    color: var(--el-text-color-secondary);
-    text-align: center;
-  }
-
-  .demo-dialog-button {
-    position: relative;
+  /* 按钮 */
+  .dialog-button {
     width: 100%;
     margin: 0;
     padding: 16px 20px;
     flex-shrink: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
     font-size: 15px;
@@ -1315,19 +1102,30 @@
     justify-content: center;
     gap: 6px;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-    z-index: 1;
   }
 
-  .demo-dialog-button:hover {
+  .wechat-button {
+    background: linear-gradient(135deg, #07c160 0%, #00d976 100%);
+  }
+
+  .wechat-button:hover {
+    background: linear-gradient(135deg, #06b056 0%, #00c96c 100%);
+  }
+
+  .demo-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .demo-button:hover {
     background: linear-gradient(135deg, #5a72e0 0%, #6b4298 100%);
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
   }
 
-  .demo-dialog-button:active {
+  .dialog-button:active {
     transform: scale(0.98);
   }
 
-  .demo-fab {
+  /* 悬浮按钮 */
+  .fab-button {
     position: fixed;
     top: 80px;
     right: 24px;
@@ -1346,16 +1144,16 @@
     z-index: 9998;
   }
 
-  .demo-fab:hover {
+  .fab-button:hover {
     transform: translateY(-4px) scale(1.05);
     box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
   }
 
-  .demo-fab:active {
+  .fab-button:active {
     transform: translateY(-2px) scale(1);
   }
 
-  .demo-fab svg {
+  .fab-button svg {
     animation: pulse 2s ease-in-out infinite;
   }
 
@@ -1369,6 +1167,7 @@
     }
   }
 
+  /* 复制提示 */
   .copy-toast {
     position: fixed;
     top: 80px;
@@ -1390,157 +1189,141 @@
     justify-content: center;
   }
 
-  .copy-toast svg {
-    flex-shrink: 0;
-  }
-
-  .copy-toast-fade-enter-active,
-  .copy-toast-fade-leave-active {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .copy-toast-fade-enter-from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
-  }
-
-  .copy-toast-fade-leave-to {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
-  }
-
-  .demo-dialog-fade-enter-active,
-  .demo-dialog-fade-leave-active {
+  /* 动画 */
+  .dialog-fade-enter-active,
+  .dialog-fade-leave-active {
     transition: opacity 0.3s ease;
   }
 
-  .demo-dialog-fade-enter-from,
-  .demo-dialog-fade-leave-to {
+  .dialog-fade-enter-from,
+  .dialog-fade-leave-to {
     opacity: 0;
   }
 
-  .demo-dialog-scale-enter-active {
+  .dialog-scale-enter-active {
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  .demo-dialog-scale-leave-active {
+  .dialog-scale-leave-active {
     transition: all 0.3s ease;
   }
 
-  .demo-dialog-scale-enter-from {
+  .dialog-scale-enter-from {
     opacity: 0;
-    transform: scale(0.85) translateY(20px);
+    transform: scale(0.85) translateY(30px);
   }
 
-  .demo-dialog-scale-leave-to {
+  .dialog-scale-leave-to {
     opacity: 0;
     transform: scale(0.95);
   }
 
-  .demo-fab-fade-enter-active,
-  .demo-fab-fade-leave-active {
+  .fab-fade-enter-active,
+  .fab-fade-leave-active {
     transition: all 0.3s ease;
   }
 
-  .demo-fab-fade-enter-from,
-  .demo-fab-fade-leave-to {
+  .fab-fade-enter-from,
+  .fab-fade-leave-to {
     opacity: 0;
     transform: translateY(20px) scale(0.8);
   }
 
+  .toast-fade-enter-active,
+  .toast-fade-leave-active {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .toast-fade-enter-from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+
+  .toast-fade-leave-to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+
+  /* 移动端适配 */
   @media (max-width: 640px) {
-    .wechat-dialog-container,
-    .demo-dialog-container {
+    .dialog-container {
       margin: 20px;
     }
 
-    .wechat-dialog-header {
+    .dialog-header {
       height: 80px;
     }
 
-    .wechat-dialog-icon {
+    .dialog-icon {
       width: 60px;
       height: 60px;
       margin: -30px auto 0;
     }
 
-    .wechat-dialog-icon svg {
+    .dialog-icon svg {
       width: 38px;
       height: 38px;
     }
 
-    .wechat-dialog-header-text,
-    .wechat-dialog-content {
+    .dialog-header-text,
+    .dialog-content {
       padding-left: 20px;
       padding-right: 20px;
     }
 
-    .demo-dialog-content {
-      padding-left: 20px;
-      padding-right: 20px;
-    }
-
-    .wechat-dialog-title,
-    .demo-dialog-title {
+    .dialog-title {
       font-size: 18px;
     }
 
-    .wechat-qrcode-img {
+    .qrcode-img {
       width: 150px;
       height: 150px;
     }
 
-    .demo-links-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .demo-fab {
+    .fab-button {
       top: 60px;
       right: 16px;
       width: 48px;
       height: 48px;
     }
 
-    .demo-fab svg {
+    .fab-button svg {
       width: 20px;
       height: 20px;
     }
   }
 
-  .dark .demo-dialog-container::before {
-    background: var(--el-bg-color);
-  }
-
-  .dark .demo-dialog-icon {
+  /* 暗色模式 */
+  .dark .dialog-icon.demo-icon {
     background: var(--el-bg-color);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   }
 
-  .dark .demo-account-box {
+  .dark .account-box {
     background: rgba(255, 255, 255, 0.05);
   }
 
-  .dark .demo-account-item {
+  .dark .account-item {
     background: rgba(255, 255, 255, 0.08);
   }
 
-  .dark .demo-link-item {
+  .dark .link-item {
     background: rgba(255, 255, 255, 0.05);
   }
 
-  .dark .demo-link-item:hover {
+  .dark .link-item:hover {
     background: rgba(255, 255, 255, 0.1);
   }
 
-  .dark .demo-copy-btn:hover {
+  .dark .copy-btn:hover {
     background: rgba(255, 255, 255, 0.1);
   }
 
-  .dark .wechat-intro-item {
+  .dark .intro-item {
     background: rgba(255, 255, 255, 0.05);
   }
 
-  .dark .wechat-intro-item:hover {
+  .dark .intro-item:hover {
     background: rgba(255, 255, 255, 0.1);
   }
 </style>

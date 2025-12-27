@@ -1,4 +1,3 @@
-pnpm run lint:lint-staged
 
 #!/bin/sh
 

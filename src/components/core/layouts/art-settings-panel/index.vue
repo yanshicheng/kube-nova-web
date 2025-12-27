@@ -5,7 +5,7 @@
       <!-- 头部关闭按钮 -->
       <SettingHeader @close="closeDrawer" />
       <!-- 主题风格 -->
-      <ThemeSettings />
+<!--      <ThemeSettings />-->
       <!-- 菜单布局 -->
       <MenuLayoutSettings />
       <!-- 菜单风格 -->
